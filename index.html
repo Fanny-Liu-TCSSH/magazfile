@@ -1,0 +1,2546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Missing Magazine Files × CODE RED</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'archive-paper': '#f4f1ea',
+                        'archive-green': '#2c4c3b',
+                        'archive-burgundy': '#722f37',
+                        'archive-mustard': '#e1ad01',
+                        'archive-orange': '#d97736',
+                        'archive-bluegray': '#3a4a5a',
+                        'archive-red': '#d92121', // CODE RED
+                        'folder-base': '#e8d8ad',
+                        'folder-dark': '#c8b687',
+                    },
+                    fontFamily: {
+                        'typewriter': ['"Courier Prime"', 'monospace'],
+                        'article': ['Lora', 'serif'],
+                        'headline': ['Oswald', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'folder': '2px 4px 10px rgba(0,0,0,0.15)',
+                        'stamp': '0 0 8px rgba(217, 33, 33, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #333;
+            overflow-x: hidden;
+            font-family: 'Courier Prime', monospace;
+        }
+
+        .crt-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.3;
+        }
+
+        /* App Container mimicking a board/screen */
+        #app-container {
+            background-color: #f4f1ea;
+            background-image: radial-gradient(#d4cec1 1px, transparent 1px);
+            background-size: 20px 20px;
+            min-height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* Typography rules */
+        .text-main-title { font-size: clamp(36px, 5vw, 44px); line-height: 1.2; font-family: 'Oswald', sans-serif; text-transform: uppercase; }
+        .text-sub-title { font-size: clamp(24px, 3vw, 28px); line-height: 1.3; }
+        .text-level-title { font-size: clamp(24px, 3vw, 30px); font-family: 'Oswald', sans-serif; }
+        .text-body { font-size: clamp(18px, 2.5vw, 20px); line-height: 1.8; font-family: 'Lora', serif; }
+        .text-option { font-size: 18px; font-weight: bold; }
+
+        /* Folders */
+        .manila-folder {
+            background-color: #e8d8ad;
+            border: 1px solid #c8b687;
+            position: relative;
+            border-radius: 0 4px 4px 4px;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .manila-folder::before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: -1px;
+            width: 40%;
+            height: 15px;
+            background-color: #e8d8ad;
+            border: 1px solid #c8b687;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+        }
+        .manila-folder:hover:not(.locked) {
+            transform: translateY(-5px) rotate(1deg);
+            box-shadow: 4px 8px 15px rgba(0,0,0,0.2);
+        }
+        .manila-folder.locked {
+            filter: grayscale(80%) brightness(0.9);
+            cursor: not-allowed;
+        }
+        .manila-folder.recovered::after {
+            content: 'APPROVED';
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #2c4c3b;
+            font-size: 24px;
+            font-family: 'Oswald', sans-serif;
+            font-weight: bold;
+            border: 3px solid #2c4c3b;
+            padding: 2px 10px;
+            transform: rotate(-15deg);
+            opacity: 0.8;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        /* Cloze Blanks */
+        .cloze-blank {
+            display: inline-block;
+            min-width: 120px;
+            border-bottom: 2px solid #333;
+            text-align: center;
+            padding: 0 5px;
+            margin: 0 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Courier Prime', monospace;
+            font-weight: bold;
+            color: #722f37;
+            min-height: 28px;
+            background-color: rgba(225, 173, 1, 0.1); /* Slight mustard tint */
+        }
+        .cloze-blank:hover {
+            background-color: rgba(217, 119, 54, 0.2);
+        }
+        .cloze-blank.active-target {
+            border-bottom: 3px solid #d97736;
+            background-color: rgba(217, 119, 54, 0.3);
+            animation: pulse 1s infinite;
+        }
+        .cloze-blank.correct {
+            border-bottom-color: #2c4c3b;
+            color: #2c4c3b;
+            background-color: rgba(44, 76, 59, 0.1);
+        }
+        .cloze-blank.incorrect {
+            border-bottom-color: #d92121;
+            color: #d92121;
+            background-color: rgba(217, 33, 33, 0.1);
+        }
+
+        /* Word Bank Options */
+        .word-option {
+            border: 2px solid #3a4a5a;
+            background-color: #fff;
+            color: #3a4a5a;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 2px 2px 0px #3a4a5a;
+        }
+        .word-option:hover:not(:disabled) {
+            background-color: #3a4a5a;
+            color: #fff;
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0px #3a4a5a;
+        }
+        .word-option.selected {
+            background-color: #d97736;
+            border-color: #d97736;
+            color: white;
+            box-shadow: none;
+            transform: translate(2px, 2px);
+        }
+        .word-option:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: translate(2px, 2px);
+        }
+
+        /* Buttons */
+        .btn-retro {
+            background-color: #2c4c3b;
+            color: #f4f1ea;
+            border: 2px solid #1a2e24;
+            box-shadow: 4px 4px 0px #1a2e24;
+            transition: all 0.1s;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-retro:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #1a2e24;
+        }
+        .btn-retro:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px #1a2e24;
+        }
+        .btn-danger {
+            background-color: #d92121;
+            border-color: #8b0000;
+            box-shadow: 4px 4px 0px #8b0000;
+        }
+        .btn-danger:hover {
+             box-shadow: 2px 2px 0px #8b0000;
+        }
+
+        /* Stamps */
+        .stamp-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px dashed #722f37;
+            color: #722f37;
+            font-size: 18px;
+            opacity: 0.3;
+            transition: all 0.3s;
+        }
+        .stamp-icon.collected {
+            opacity: 1;
+            border-style: solid;
+            background-color: rgba(114, 47, 55, 0.1);
+            transform: scale(1.1) rotate(-10deg);
+            box-shadow: 0 0 10px rgba(114, 47, 55, 0.3);
+        }
+
+        /* Paper texture block */
+        .paper-block {
+            background-color: #fffdf9;
+            border: 1px solid #e0d8c3;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.02), 2px 4px 8px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        .paper-block::before { /* Red vertical line like lined paper */
+            content: '';
+            position: absolute;
+            left: 40px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: rgba(217, 33, 33, 0.2);
+        }
+
+        /* Vault */
+        #final-vault {
+            background: linear-gradient(135deg, #4a5568, #2d3748);
+            border: 8px solid #1a202c;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s;
+        }
+        #final-vault::before {
+            content: '';
+            position: absolute;
+            top: 10px; bottom: 10px; left: 10px; right: 10px;
+            border: 2px dashed rgba(255,255,255,0.2);
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        @keyframes stampDown {
+            0% { transform: scale(3) rotate(-20deg); opacity: 0; }
+            50% { transform: scale(0.8) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) rotate(-10deg); opacity: 0.9; }
+        }
+
+        /* Mobile & Desktop display rules for Word Bank */
+        @media (max-width: 1023px) {
+            .wb-mobile-toggle { display: flex !important; }
+            .wb-desktop-header { display: none !important; }
+            #word-bank-body.is-collapsed { display: none !important; }
+            #word-bank-body { display: block; }
+        }
+
+        @media (min-width: 1024px) {
+            .wb-mobile-toggle { display: none !important; }
+            .wb-desktop-header { display: flex !important; }
+            #word-bank-body { display: block !important; }
+        }
+
+        /* Perfect Evidence Badge */
+        .perfect-badge {
+            background: linear-gradient(135deg, #e1ad01 0%, #d97736 100%);
+            box-shadow: 0 0 15px rgba(225, 173, 1, 0.6);
+        }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.4s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="text-gray-800 antialiased selection:bg-archive-orange selection:text-white">
+
+    <div class="crt-overlay"></div>
+
+    <div id="app-container" class="flex flex-col relative pb-10">
+        
+        <!-- Top Bar (Visible after login) -->
+        <header id="top-bar" class="hidden flex flex-wrap justify-between items-center p-3 md:p-4 bg-archive-bluegray text-archive-paper border-b-4 border-archive-burgundy sticky top-0 z-40 shadow-md gap-2">
+            <div class="flex items-center gap-3">
+                <button onclick="navTo('screen-board')" class="hover:text-archive-orange transition-colors" title="Back to Mission Board">
+                    <i class="fa-solid fa-folder-tree text-xl md:text-2xl"></i>
+                </button>
+                <div class="font-bold text-xs md:text-sm font-typewriter">
+                    AGENT: <span id="display-agent-name" class="text-archive-orange uppercase tracking-wider">NOT ASSIGNED</span>
+                </div>
+            </div>
+
+            <!-- Action buttons & Stamp Tracker -->
+            <div class="flex items-center gap-2 md:gap-3">
+                <button onclick="openProgressScreen()" class="flex items-center gap-1.5 bg-archive-green hover:bg-[#1f362a] text-white text-xs md:text-sm font-bold font-typewriter py-1.5 px-2.5 md:px-3 rounded shadow transition-transform active:scale-95">
+                    <i class="fa-solid fa-chart-line text-archive-mustard"></i>
+                    <span class="hidden sm:inline">MY PROGRESS</span>
+                    <span class="sm:hidden">PROGRESS</span>
+                </button>
+
+                <button onclick="openErrorLog()" class="flex items-center gap-1.5 bg-archive-burgundy hover:bg-[#8e3943] text-white text-xs md:text-sm font-bold font-typewriter py-1.5 px-2.5 md:px-3 rounded shadow transition-transform active:scale-95">
+                    <i class="fa-solid fa-book-bookmark text-archive-mustard"></i>
+                    <span class="hidden sm:inline">MY ERROR FILES</span>
+                    <span class="sm:hidden">ERRORS</span>
+                    <span id="header-error-badge" class="bg-archive-red text-white text-[11px] font-bold px-1.5 py-0.2 rounded-full hidden">0</span>
+                </button>
+
+                <button onclick="handleChangeAgent()" class="flex items-center gap-1 bg-gray-700 hover:bg-gray-800 text-gray-200 text-xs font-bold font-typewriter py-1.5 px-2 md:px-2.5 rounded shadow transition-transform active:scale-95" title="Change to another agent">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span class="hidden md:inline">CHANGE AGENT</span>
+                </button>
+                
+                <!-- Stamp Tracker -->
+                <div class="flex flex-col items-end pl-1 border-l border-gray-600">
+                    <div class="text-[11px] md:text-xs font-bold mb-0.5 tracking-widest text-archive-mustard">EVIDENCE <span id="stamp-count-text">0 / 6</span></div>
+                    <div id="stamp-tracker" class="flex gap-1">
+                        <!-- Stamps injected here by JS -->
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Screens Container -->
+        <main class="flex-grow flex flex-col p-4 md:p-8">
+
+            <!-- ================= SCREEN 1: LANDING & AGENT REGISTRATION ================= -->
+            <section id="screen-landing" class="flex-grow flex flex-col justify-center items-center text-center fade-in">
+                <div class="border-8 border-archive-green p-6 md:p-14 bg-white relative max-w-3xl w-full shadow-2xl transform -rotate-1">
+                    <div class="absolute -top-4 -left-4 w-8 h-8 rounded-full bg-gray-400 shadow-md flex items-center justify-center border border-gray-600"><div class="w-4 h-4 rounded-full bg-gray-300"></div></div>
+                    <div class="absolute -top-4 -right-4 w-8 h-8 rounded-full bg-gray-400 shadow-md flex items-center justify-center border border-gray-600"><div class="w-4 h-4 rounded-full bg-gray-300"></div></div>
+                    
+                    <h2 class="text-sm md:text-xl font-bold tracking-[0.3em] text-gray-500 mb-2">MISSION CONTROL BOARD</h2>
+                    <h1 class="text-main-title text-archive-bluegray mb-2 font-bold">The Missing Magazine Files</h1>
+                    <div class="inline-block bg-archive-red text-white font-bold text-xl md:text-3xl px-6 py-1.5 mb-6 uppercase tracking-widest border-4 border-double border-white shadow-[0_0_15px_rgba(217,33,33,0.6)]">
+                        Code Red
+                    </div>
+                    
+                    <p class="text-body text-[17px] md:text-[19px] font-bold text-gray-700 max-w-lg mx-auto mb-6">
+                        6 important magazine files have been scattered and locked.<br>
+                        Recover every file, collect evidence stamps, and unlock the Final Exam Vault before the exam begins.
+                    </p>
+
+                    <!-- AGENT REGISTRATION FORM -->
+                    <div id="login-form" class="border-t-2 border-dashed border-gray-300 pt-6 max-w-md mx-auto">
+                        <div class="bg-yellow-50 border border-archive-mustard rounded p-2 mb-4">
+                            <h3 class="font-headline font-bold text-archive-burgundy text-lg tracking-wider uppercase">Agent Registration</h3>
+                            <p class="text-xs text-gray-600 font-typewriter">Enter your assigned credentials to access or continue mission files.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 text-left">
+                            <div>
+                                <label for="reg-class" class="block font-typewriter font-bold text-xs uppercase text-archive-green mb-1">Class</label>
+                                <input type="text" id="reg-class" class="w-full border-2 border-archive-bluegray bg-gray-50 rounded py-2 px-3 text-base font-typewriter focus:outline-none focus:border-archive-orange" placeholder="e.g. 106">
+                            </div>
+                            <div>
+                                <label for="reg-seat" class="block font-typewriter font-bold text-xs uppercase text-archive-green mb-1">Seat No. (Digits only)</label>
+                                <input type="text" id="reg-seat" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="w-full border-2 border-archive-bluegray bg-gray-50 rounded py-2 px-3 text-base font-typewriter focus:outline-none focus:border-archive-orange" placeholder="e.g. 12" inputmode="numeric">
+                            </div>
+                        </div>
+
+                        <div class="text-left mb-6">
+                            <label for="reg-name" class="block font-typewriter font-bold text-xs uppercase text-archive-green mb-1">Name</label>
+                            <input type="text" id="reg-name" class="w-full border-2 border-archive-bluegray bg-gray-50 rounded py-2 px-3 text-base font-typewriter focus:outline-none focus:border-archive-orange" placeholder="e.g. 王小明">
+                        </div>
+
+                        <button onclick="handleLogin()" class="btn-retro text-lg md:text-xl py-3 px-8 rounded w-full shadow-lg">
+                            <i class="fa-solid fa-fingerprint mr-2"></i> ENTER ARCHIVE
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SCREEN 2: MISSION BOARD ================= -->
+            <section id="screen-board" class="hidden flex-grow flex-col max-w-6xl mx-auto w-full fade-in">
+                
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 border-b-4 border-archive-bluegray pb-4 gap-4">
+                    <div>
+                        <h1 class="text-main-title text-archive-bluegray">Investigation Board</h1>
+                        <p class="text-body text-gray-600 mt-1">Select an active case to begin recovery operations.</p>
+                    </div>
+                    
+                    <!-- Mode Toggle & Quick Links -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="openProgressScreen()" class="flex items-center gap-1.5 bg-white hover:bg-green-50 border-2 border-archive-green text-archive-green px-3 py-1.5 rounded shadow-sm text-xs font-bold font-typewriter">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            <span>MY PROGRESS</span>
+                        </button>
+                        <button onclick="openErrorLog()" class="flex items-center gap-1.5 bg-white hover:bg-yellow-50 border-2 border-archive-burgundy text-archive-burgundy px-3 py-1.5 rounded shadow-sm text-xs font-bold font-typewriter">
+                            <i class="fa-solid fa-clipboard-list text-archive-red"></i>
+                            <span>ERROR FILES (<span id="board-error-count">0</span>)</span>
+                        </button>
+                        <div class="flex items-center gap-2 bg-white p-1.5 border-2 border-gray-300 rounded shadow-sm text-xs font-bold font-typewriter">
+                            <span>MODE:</span>
+                            <select id="mode-select" onchange="toggleMode()" class="bg-gray-100 border border-gray-300 p-1 rounded outline-none font-typewriter cursor-pointer">
+                                <option value="free">FREE INVESTIGATION</option>
+                                <option value="sequential">SEQUENTIAL MISSION</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid of Files -->
+                <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-12">
+                    <!-- Files injected by JS -->
+                </div>
+
+                <!-- Final Vault -->
+                <div id="final-vault" class="mt-auto w-full max-w-3xl mx-auto p-8 text-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center min-h-[250px]">
+                    <i id="vault-icon" class="fa-solid fa-lock text-5xl text-gray-400 mb-4 drop-shadow-md"></i>
+                    <h2 class="text-level-title text-white mb-2 tracking-widest">FINAL EXAM VAULT</h2>
+                    
+                    <div id="vault-status-locked" class="text-gray-300">
+                        <p class="mb-4 font-typewriter">Collect all 6 Evidence Stamps to unlock.</p>
+                        <!-- LED Indicators -->
+                        <div class="flex justify-center gap-3 mt-4">
+                            <div id="led-red" class="w-4 h-4 rounded-full bg-red-600 shadow-[0_0_10px_red]"></div>
+                            <div id="led-yellow" class="w-4 h-4 rounded-full bg-gray-700"></div>
+                            <div id="led-green" class="w-4 h-4 rounded-full bg-gray-700"></div>
+                        </div>
+                    </div>
+
+                    <div id="vault-status-unlocked" class="hidden mt-4">
+                        <p class="text-green-400 font-bold tracking-widest mb-4 animate-pulse">ACCESS GRANTED</p>
+                        <button onclick="startFinalVault()" class="btn-retro !bg-archive-mustard !text-black !border-black py-3 px-8 rounded shadow-[0_0_15px_#e1ad01]">
+                            ENTER FINAL CHALLENGE
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reset Settings & Switch Agent -->
+                <div class="mt-12 text-center flex justify-center gap-6">
+                    <button onclick="handleChangeAgent()" class="text-sm text-gray-600 hover:text-archive-green underline font-typewriter">
+                        [Change Agent]
+                    </button>
+                    <button onclick="showResetModal()" class="text-sm text-gray-400 hover:text-archive-red underline font-typewriter transition-colors">
+                        [Reset This Agent's Progress]
+                    </button>
+                </div>
+            </section>
+
+            <!-- ================= SCREEN 3: FILE INTRO ================= -->
+            <section id="screen-file-intro" class="hidden flex-grow flex-col items-center justify-center fade-in">
+                <div class="paper-block p-8 md:p-12 max-w-2xl w-full">
+                    <div class="border-b-2 border-black pb-4 mb-6 flex justify-between items-start pl-8 md:pl-12">
+                        <div>
+                            <span class="bg-black text-white text-xs font-bold px-2 py-1 uppercase tracking-widest block w-max mb-2">Classified</span>
+                            <h2 id="intro-file-title" class="text-level-title">File Title</h2>
+                        </div>
+                        <i id="intro-file-icon" class="text-4xl text-archive-burgundy opacity-80"></i>
+                    </div>
+                    
+                    <div class="pl-8 md:pl-12">
+                        <h3 class="font-bold text-lg mb-2 text-archive-green uppercase">Mission Brief</h3>
+                        <p class="text-body mb-6 text-gray-700 bg-yellow-50 p-4 border-l-4 border-archive-mustard">
+                            Recover the missing information from this article. Read carefully and fill in the blanks using the provided evidence fragments.
+                        </p>
+                        
+                        <div class="flex items-center gap-4 mb-8">
+                            <span class="font-bold text-gray-500">Target Stamp:</span>
+                            <div id="intro-target-stamp" class="stamp-icon !opacity-100 !border-solid bg-white shadow-sm">
+                                <!-- icon injected -->
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-8">
+                            <button onclick="startClozePhase()" class="btn-retro py-3 px-8 rounded text-xl w-full md:w-auto">
+                                BEGIN INVESTIGATION
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SCREEN 4: CLOZE INVESTIGATION ================= -->
+            <section id="screen-cloze" class="hidden flex-grow flex-col max-w-6xl mx-auto w-full fade-in pb-12">
+                
+                <div class="flex justify-between items-center mb-4 pl-2 md:pl-0">
+                    <h2 class="text-xl md:text-2xl font-bold font-typewriter text-archive-bluegray uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass text-archive-orange"></i> Phase 1: Text Recovery
+                    </h2>
+                    <div id="cloze-progress" class="font-bold text-archive-green bg-white px-3 py-1 border border-gray-300 rounded shadow-sm text-sm md:text-base">
+                        0 / 10 Filled
+                    </div>
+                </div>
+
+                <!-- Responsive 2-Column Grid: Left Article, Right Word Bank on Desktop -->
+                <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+                    
+                    <!-- Left: Article Container -->
+                    <div class="paper-block p-6 md:p-10 text-body relative min-w-0">
+                        <div class="pl-8 md:pl-12">
+                            <h1 id="cloze-title" class="text-2xl md:text-3xl font-bold font-headline text-center mb-6 md:mb-8 border-b border-gray-300 pb-4"></h1>
+                            <div id="cloze-text" class="leading-loose text-justify text-gray-800 break-words">
+                                <!-- Text with blanks injected here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Word Bank & Controls (Sticky on Desktop, Collapsible on Mobile) -->
+                    <div class="lg:sticky lg:top-24 z-20">
+                        <div class="bg-gray-100 border-2 border-gray-400 p-3 md:p-4 rounded-lg shadow-md flex flex-col">
+                            
+                            <!-- Mobile Collapsible Header (Visible only on mobile/tablet) -->
+                            <button type="button" onclick="toggleMobileWordBank()" class="wb-mobile-toggle w-full justify-between items-center text-left py-1 text-archive-bluegray focus:outline-none">
+                                <span class="font-bold text-[18px] font-headline flex items-center gap-2">
+                                    <i class="fa-solid fa-box-open text-archive-orange text-base"></i>
+                                    EVIDENCE FRAGMENTS
+                                    <span id="mobile-bank-count" class="text-xs font-typewriter font-normal text-gray-600 bg-gray-200 border border-gray-300 px-1.5 py-0.5 rounded">10 items</span>
+                                </span>
+                                <span class="text-xs font-bold text-archive-burgundy flex items-center gap-1">
+                                    <span id="mobile-bank-toggle-text">SHOW</span>
+                                    <i id="mobile-bank-chevron" class="fa-solid fa-chevron-down transition-transform duration-200"></i>
+                                </span>
+                            </button>
+
+                            <!-- Desktop Header (Always visible on desktop) -->
+                            <div class="wb-desktop-header justify-between items-center mb-3">
+                                <h3 class="font-bold text-gray-700 uppercase tracking-wider text-[18px] font-headline flex items-center gap-1.5">
+                                    <i class="fa-solid fa-box-open text-archive-orange"></i> EVIDENCE FRAGMENTS
+                                </h3>
+                                <p class="text-[11px] text-gray-500 font-bold bg-white px-2 py-0.5 border border-gray-300 rounded font-typewriter">Click & Match</p>
+                            </div>
+
+                            <!-- Collapsible / Scrollable Body -->
+                            <div id="word-bank-body" class="is-collapsed mt-2 lg:mt-0 transition-all duration-200">
+                                <p class="text-xs text-gray-500 font-bold mb-2 lg:hidden">Tap an evidence word below, then tap a blank in the passage:</p>
+                                
+                                <!-- Word Bank Grid: 2-column on mobile, single column on desktop -->
+                                <div id="word-bank" class="grid grid-cols-2 lg:grid-cols-1 gap-2 max-h-[35vh] lg:max-h-[52vh] overflow-y-auto p-1 pr-1.5">
+                                    <!-- Options injected here -->
+                                </div>
+                            </div>
+
+                            <!-- Feedback & Action Buttons -->
+                            <div class="border-t border-gray-300 pt-3 mt-3 flex flex-col gap-2">
+                                <div id="cloze-feedback" class="font-bold text-xs md:text-sm min-h-[20px] text-center">
+                                    <!-- Feedback messages -->
+                                </div>
+                                <div class="flex gap-2">
+                                    <button id="btn-hint" onclick="requestHint()" class="hidden btn-retro !bg-archive-mustard !text-black !border-black h-12 px-3 text-xs md:text-sm rounded flex-1">
+                                        <i class="fa-solid fa-lightbulb mr-1"></i> Hint
+                                    </button>
+                                    <button id="btn-submit-cloze" onclick="submitCloze()" class="btn-retro h-12 px-4 rounded text-sm md:text-base flex-1 flex items-center justify-center font-bold tracking-wide" disabled>
+                                        SUBMIT EVIDENCE
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ================= SCREEN 5: INTEL CHECK ================= -->
+            <section id="screen-intel" class="hidden flex-grow flex-col items-center justify-center fade-in">
+                <div class="paper-block p-8 md:p-12 max-w-3xl w-full pl-12 md:pl-16">
+                    <h2 class="text-3xl font-bold font-typewriter text-archive-bluegray uppercase mb-2 border-b-4 border-archive-burgundy pb-2 inline-block">
+                        Phase 2: Intel Check
+                    </h2>
+                    <p class="text-gray-600 mb-8 italic">Verify your understanding of the recovered document.</p>
+
+                    <div id="intel-questions-container" class="space-y-10">
+                        <!-- Questions injected here -->
+                    </div>
+
+                    <div id="intel-feedback" class="mt-6 font-bold text-lg text-center hidden"></div>
+
+                    <div class="mt-10 text-center">
+                        <button onclick="submitIntel()" class="btn-retro py-3 px-10 rounded text-xl shadow-lg">
+                            VERIFY INTEL
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SCREEN 6: STAMP REVEAL ANIMATION ================= -->
+            <section id="screen-stamp-reveal" class="hidden flex-grow flex-col items-center justify-center bg-black bg-opacity-90 fixed inset-0 z-50 fade-in">
+                <h1 class="text-5xl md:text-7xl font-headline text-white mb-12 tracking-widest uppercase text-center animate-pulse text-shadow-glow">Evidence Verified</h1>
+                
+                <div class="relative w-64 h-64 bg-[#f4f1ea] rounded shadow-2xl flex items-center justify-center border-4 border-gray-300 transform -rotate-3 p-4">
+                    <div class="absolute inset-0 border-2 border-dashed border-gray-400 m-2"></div>
+                    <div class="text-center z-10">
+                        <div class="text-xs font-typewriter text-gray-500 mb-2 font-bold uppercase">Recovered by<br><span id="reveal-agent" class="text-archive-green">AGENT</span></div>
+                        <div id="reveal-stamp-icon" class="text-6xl text-archive-burgundy mb-4 opacity-0 transition-opacity duration-500" style="text-shadow: 0 0 10px rgba(114,47,55,0.5);">
+                            <!-- Icon -->
+                        </div>
+                        <div id="reveal-stamp-text" class="text-3xl font-headline text-archive-burgundy font-bold border-4 border-archive-burgundy px-4 py-1 inline-block transform rotate-[-15deg] opacity-0">
+                            RECOVERED
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="finishFile()" class="mt-8 px-6 py-2 border-2 border-white text-white text-lg md:text-xl font-typewriter hover:bg-white hover:text-black transition-all rounded shadow-lg" id="btn-continue-board" style="opacity: 0; visibility: hidden; transition: opacity 0.5s ease-in;">
+                    [ Return to Mission Board ]
+                </button>
+            </section>
+
+            <!-- ================= SCREEN 7: FINAL EXAM VAULT ================= -->
+            <section id="screen-vault" class="hidden flex-grow flex-col max-w-4xl mx-auto w-full fade-in pb-12">
+                <div class="bg-gray-900 border-4 border-gray-700 p-6 md:p-10 rounded-xl shadow-2xl text-white relative overflow-hidden">
+                    <!-- Tech background grid -->
+                    <div class="absolute inset-0" style="background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 20px 20px; pointer-events: none;"></div>
+                    
+                    <div class="relative z-10">
+                        <div class="text-center mb-10 border-b border-gray-600 pb-6">
+                            <i class="fa-solid fa-unlock-keyhole text-4xl text-green-400 mb-4 animate-pulse"></i>
+                            <h1 class="text-4xl font-headline font-bold text-white tracking-widest">FINAL EXAM VAULT</h1>
+                            <p class="text-gray-400 font-typewriter mt-2">Comprehensive Knowledge Retrieval Initiated.</p>
+                        </div>
+
+                        <div id="vault-questions-container" class="space-y-8 mb-10">
+                            <!-- Final questions injected here -->
+                        </div>
+                        
+                        <div id="vault-feedback" class="text-center mb-6 font-bold text-xl hidden"></div>
+
+                        <div class="text-center">
+                            <button onclick="submitFinalVault()" class="btn-retro !bg-archive-red !border-red-900 shadow-[0_0_20px_rgba(217,33,33,0.5)] py-4 px-12 rounded-lg text-2xl">
+                                COMPLETE MISSION
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SCREEN 8: CERTIFICATE ================= -->
+            <section id="screen-certificate" class="hidden flex-grow flex-col items-center justify-center fade-in py-10">
+                <div class="bg-[#fdfbf7] border-[10px] border-[#e8d8ad] max-w-3xl w-full p-8 md:p-16 shadow-2xl relative">
+                    <!-- Watermark -->
+                    <div class="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
+                        <i class="fa-solid fa-shield-halved text-[300px]"></i>
+                    </div>
+                    
+                    <div class="relative z-10 text-center border-4 border-double border-gray-800 p-8 md:p-12">
+                        <h3 class="font-typewriter font-bold tracking-[0.5em] text-gray-500 mb-4">DEPARTMENT OF INTELLIGENCE</h3>
+                        <h1 class="text-5xl font-headline font-bold text-archive-bluegray mb-8 uppercase border-b-2 border-black inline-block pb-2">
+                            Confidential Case Report
+                        </h1>
+                        
+                        <div class="grid grid-cols-2 gap-6 text-left max-w-md mx-auto mb-10 font-typewriter text-lg bg-gray-100 p-6 border border-gray-300">
+                            <div class="text-gray-500">CASE STATUS:</div><div class="font-bold text-archive-green">CLOSED</div>
+                            <div class="text-gray-500">LEAD AGENT:</div><div class="font-bold border-b border-dashed border-gray-400" id="cert-agent"></div>
+                            <div class="text-gray-500">FILES RECOVERED:</div><div class="font-bold" id="cert-files-count">6 / 6</div>
+                            <div class="text-gray-500">VAULT SCORE:</div><div class="font-bold" id="cert-score"></div>
+                            <div class="text-gray-500">ACCURACY:</div><div class="font-bold" id="cert-accuracy"></div>
+                        </div>
+
+                        <div class="mb-10">
+                            <h2 class="text-xl text-gray-600 mb-2">AGENT CLASSIFICATION</h2>
+                            <div id="cert-rank" class="text-4xl font-headline font-bold text-archive-burgundy py-2 px-8 border-4 border-archive-burgundy inline-block bg-red-50 transform -rotate-2">
+                                MASTER ARCHIVIST
+                            </div>
+                        </div>
+
+                        <!-- PERFECT EVIDENCE BADGE (if remainingErrors === 0) -->
+                        <div id="cert-perfect-badge-container" class="hidden mb-8">
+                            <div class="perfect-badge text-white font-headline text-xl md:text-2xl font-bold py-3 px-6 rounded-lg inline-flex items-center gap-3 border-2 border-white shadow-xl">
+                                <i class="fa-solid fa-certificate text-3xl"></i>
+                                <span>PERFECT EVIDENCE BADGE AWARDED</span>
+                                <i class="fa-solid fa-check-double text-2xl"></i>
+                            </div>
+                            <p class="text-xs font-typewriter text-gray-600 mt-2 font-bold">100% of all logged evidence errors have been successfully corrected!</p>
+                        </div>
+
+                        <p class="font-bold text-gray-800 mb-8 max-w-lg mx-auto leading-relaxed">
+                            This certifies that the agent named above has successfully recovered all missing magazine files and unlocked the Final Exam Vault.
+                        </p>
+
+                        <div class="border-t border-gray-300 pt-8 mt-8">
+                            <h4 class="font-bold text-gray-500 mb-4 tracking-widest text-sm">RECOVERED EVIDENCE LOG</h4>
+                            <div id="cert-stamps" class="flex flex-wrap justify-center gap-4">
+                                <!-- Stamps injected here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Decorative Signature -->
+                        <div class="absolute bottom-6 right-8 text-right">
+                            <div class="font-typewriter text-xs text-gray-500 mb-1">AUTHORIZED BY:</div>
+                            <div class="font-[Brush_Script_MT,cursive] text-2xl text-archive-bluegray border-b border-black inline-block w-40 text-center">Director H.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center gap-6 mt-8">
+                    <button onclick="navTo('screen-board')" class="btn-retro text-sm py-2 px-6 rounded">Back to Mission Board</button>
+                    <button onclick="handleChangeAgent()" class="text-sm text-gray-500 hover:text-gray-800 underline">Switch Agent</button>
+                </div>
+            </section>
+
+            <!-- ================= SCREEN 9: MY ERROR FILES (STUDENT ERROR LOGBOOK) ================= -->
+            <section id="screen-error-log" class="hidden flex-grow flex-col max-w-4xl mx-auto w-full fade-in pb-12">
+                <div class="paper-block p-6 md:p-10 shadow-xl">
+                    <div class="pl-8 md:pl-12">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-2 border-archive-bluegray pb-4 mb-6 gap-3">
+                            <div>
+                                <span class="bg-archive-burgundy text-white text-xs font-bold px-2 py-0.5 uppercase tracking-widest rounded-sm">Confidential Case Review</span>
+                                <h1 class="text-3xl md:text-4xl font-headline font-bold text-archive-bluegray mt-1">MY ERROR FILES</h1>
+                                <p class="text-sm text-gray-600 font-typewriter mt-1">Review what went wrong. Recover the missing evidence.</p>
+                            </div>
+                            <button onclick="navTo('screen-board')" class="btn-retro text-sm py-2 px-4 rounded self-end sm:self-auto">
+                                <i class="fa-solid fa-arrow-left mr-1"></i> Mission Board
+                            </button>
+                        </div>
+
+                        <!-- Summary Status Bar -->
+                        <div id="error-status-bar" class="bg-gray-100 border border-gray-300 rounded p-4 mb-6 flex flex-wrap justify-between items-center gap-4 font-typewriter">
+                            <div>
+                                <span class="text-gray-600 text-sm">STILL UNSOLVED:</span>
+                                <span id="error-remaining-count" class="text-xl font-bold text-archive-red ml-1">0</span>
+                            </div>
+                            <div class="text-sm">
+                                <span class="text-gray-600">CORRECTED:</span>
+                                <span id="error-corrected-count" class="font-bold text-archive-green ml-1">0</span>
+                                <span class="text-gray-400 mx-2">|</span>
+                                <span class="text-gray-600">TOTAL LOGGED:</span>
+                                <span id="error-total-count" class="font-bold text-gray-800 ml-1">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Celebration Banner (Shown when all errors are resolved) -->
+                        <div id="error-all-clear-banner" class="hidden mb-6 bg-green-50 border-2 border-archive-green p-4 rounded text-center">
+                            <div class="text-archive-green font-bold text-xl font-headline uppercase tracking-wide flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-circle-check text-2xl"></i> ALL EVIDENCE CORRECTED
+                            </div>
+                            <p class="text-sm text-gray-700 mt-1">Outstanding investigative precision! All previously missed clues have been resolved.</p>
+                        </div>
+
+                        <!-- Tabs Navigation -->
+                        <div class="flex border-b border-gray-300 mb-6 font-headline text-sm md:text-base">
+                            <button onclick="switchErrorTab('still-unsolved')" id="tab-btn-still-unsolved" class="py-2 px-3 md:px-4 font-bold border-b-4 border-archive-red text-archive-red transition-all">
+                                STILL UNSOLVED (<span id="tab-count-still-unsolved">0</span>)
+                            </button>
+                            <button onclick="switchErrorTab('corrected')" id="tab-btn-corrected" class="py-2 px-3 md:px-4 font-bold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-all">
+                                CORRECTED (<span id="tab-count-corrected">0</span>)
+                            </button>
+                            <button onclick="switchErrorTab('all')" id="tab-btn-all" class="py-2 px-3 md:px-4 font-bold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-all">
+                                ALL ERRORS (<span id="tab-count-all">0</span>)
+                            </button>
+                        </div>
+
+                        <!-- Error Cards List -->
+                        <div id="error-cards-container" class="space-y-4">
+                            <!-- Cards injected dynamically by JS -->
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="error-empty-state" class="hidden text-center py-12 text-gray-500 font-typewriter">
+                            <i class="fa-solid fa-shield-cat text-5xl mb-3 text-gray-300"></i>
+                            <p class="text-lg font-bold">No case errors found in this section.</p>
+                            <p class="text-sm text-gray-400 mt-1">Keep up the meticulous investigative work!</p>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SCREEN 10: MY PROGRESS (DOSSIER) ================= -->
+            <section id="screen-progress" class="hidden flex-grow flex-col max-w-4xl mx-auto w-full fade-in pb-12">
+                <div class="paper-block p-6 md:p-10 shadow-xl">
+                    <div class="pl-8 md:pl-12">
+                        <div class="flex justify-between items-center border-b-2 border-archive-bluegray pb-4 mb-6">
+                            <div>
+                                <span class="bg-archive-green text-white text-xs font-bold px-2 py-0.5 uppercase tracking-widest rounded-sm">Confidential Dossier</span>
+                                <h1 class="text-3xl md:text-4xl font-headline font-bold text-archive-bluegray mt-1">MY PROGRESS</h1>
+                                <p class="text-sm text-gray-600 font-typewriter mt-1">Agent Performance Log & Status Overview</p>
+                            </div>
+                            <button onclick="navTo('screen-board')" class="btn-retro text-sm py-2 px-4 rounded">
+                                <i class="fa-solid fa-arrow-left mr-1"></i> Board
+                            </button>
+                        </div>
+
+                        <!-- Agent Identification Badge -->
+                        <div class="bg-gray-100 border border-gray-300 p-4 rounded mb-6 flex flex-wrap justify-between items-center gap-3 font-typewriter">
+                            <div>
+                                <span class="text-gray-500 text-xs uppercase block">Agent Dossier</span>
+                                <span id="progress-agent-id" class="text-lg font-bold text-archive-bluegray">CLASS - SEAT - NAME</span>
+                            </div>
+                            <div id="progress-badge-slot">
+                                <!-- Perfect badge indicator if earned -->
+                            </div>
+                        </div>
+
+                        <!-- Statistics Grid -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8 font-typewriter">
+                            <div class="bg-white border-2 border-gray-300 p-4 rounded text-center shadow-sm">
+                                <div class="text-xs text-gray-500 uppercase font-bold">Files Recovered</div>
+                                <div id="stat-files" class="text-2xl md:text-3xl font-bold text-archive-green mt-1">0 / 6</div>
+                            </div>
+                            <div class="bg-white border-2 border-gray-300 p-4 rounded text-center shadow-sm">
+                                <div class="text-xs text-gray-500 uppercase font-bold">Evidence Stamps</div>
+                                <div id="stat-stamps" class="text-2xl md:text-3xl font-bold text-archive-burgundy mt-1">0 / 6</div>
+                            </div>
+                            <div class="bg-white border-2 border-gray-300 p-4 rounded text-center shadow-sm">
+                                <div class="text-xs text-gray-500 uppercase font-bold">Final Vault</div>
+                                <div id="stat-vault" class="text-base md:text-xl font-bold text-gray-700 mt-2">LOCKED</div>
+                            </div>
+                            <div class="bg-white border-2 border-gray-300 p-4 rounded text-center shadow-sm">
+                                <div class="text-xs text-gray-500 uppercase font-bold">Total Errors Logged</div>
+                                <div id="stat-total-errors" class="text-2xl font-bold text-gray-800 mt-1">0</div>
+                            </div>
+                            <div class="bg-white border-2 border-gray-300 p-4 rounded text-center shadow-sm">
+                                <div class="text-xs text-gray-500 uppercase font-bold">Corrected Errors</div>
+                                <div id="stat-corrected-errors" class="text-2xl font-bold text-archive-green mt-1">0</div>
+                            </div>
+                            <div class="bg-white border-2 border-gray-300 p-4 rounded text-center shadow-sm">
+                                <div class="text-xs text-gray-500 uppercase font-bold">Still Unsolved</div>
+                                <div id="stat-unsolved-errors" class="text-2xl font-bold text-archive-red mt-1">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Accuracy Comparison -->
+                        <div class="bg-yellow-50 border border-archive-mustard p-4 rounded mb-8 font-typewriter">
+                            <h3 class="font-bold text-sm text-archive-bluegray uppercase mb-2">Score Intelligence</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                <div>Average First-Attempt Score: <span id="stat-first-score" class="font-bold text-archive-burgundy">N/A</span></div>
+                                <div>Current Average Score: <span id="stat-current-score" class="font-bold text-archive-green">N/A</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Per File Breakdown Table -->
+                        <h3 class="font-headline font-bold text-xl text-archive-bluegray mb-3 uppercase">File Status Breakdown</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs md:text-sm font-typewriter border-collapse">
+                                <thead>
+                                    <tr class="bg-archive-bluegray text-white">
+                                        <th class="p-2">File</th>
+                                        <th class="p-2">Status</th>
+                                        <th class="p-2 text-center">First Score</th>
+                                        <th class="p-2 text-center">Final Score</th>
+                                        <th class="p-2 text-center">Retries</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="progress-files-table">
+                                    <!-- Injected by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        
+        <!-- Custom Modal for Alerts/Confirms -->
+        <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
+            <div class="bg-archive-paper border-4 border-archive-burgundy p-6 md:p-8 max-w-md w-full shadow-2xl rounded text-center">
+                <i class="fa-solid fa-triangle-exclamation text-4xl text-archive-red mb-4"></i>
+                <h3 id="modal-title" class="text-2xl font-bold font-headline mb-4 uppercase">System Warning</h3>
+                <p id="modal-msg" class="text-body mb-8"></p>
+                <div class="flex justify-center gap-4">
+                    <button id="modal-btn-cancel" class="hidden btn-retro !bg-gray-500 !border-gray-700 px-6 py-2 rounded">CANCEL</button>
+                    <button id="modal-btn-confirm" class="btn-retro !bg-archive-red !border-red-900 px-6 py-2 rounded">PROCEED</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- GOOGLE APPS SCRIPT INTEGRATION URL ---
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwtv6qqt7ygsJGx682QOramJTTMIs5hVaFfDIaknNMDkmFTqJgMCGvdvZSaHOgywAU-Pg/exec";
+
+        // --- GAME DATA (6 Selected Files) ---
+        const GAME_DATA = [
+            {
+                id: 1,
+                title: "The Walking Creature Project",
+                subtitle: "Pikmin Bloom",
+                icon: "fa-shoe-prints",
+                stampIcon: "fa-seedling",
+                difficulty: "Medium",
+                cloze: {
+                    text: `Pikmin Bloom is a free mobile game that encourages people to walk outdoors. Instead of asking players to sit still for hours, the game (1) [1] them for moving around in the real world.<br><br>
+                           As players walk, they raise small plant-like creatures called Pikmin. Each Pikmin begins as a seedling. After enough steps, the player can pull it from the ground and add it to a (2) [2]. Pikmin can collect fruit, which is turned into nectar. The nectar makes flowers bloom on their heads, and players can collect petals and leave colorful (3) [3] on a real-world map.<br><br>
+                           As the (4) [4] between a player and a Pikmin grows, the Pikmin may receive a special item related to the place where it was found. These are called Decor Pikmin.<br><br>
+                           Taiwan has one of the game’s most active (5) [5]. Players have joined special events in places such as Kaohsiung and Chiayi. The game also includes social features. Teams can battle giant mushrooms at real-world (6) [6] and receive shared rewards.<br><br>
+                           With Party Walk, players can walk together and compare their steps in (7) [7]. They may also send postcards to friends in other countries.<br><br>
+                           In this way, Pikmin Bloom turns an everyday (8) [8] into a shared adventure. It appeals to casual walkers and (9) [9] collectors alike. The game shows how technology can encourage people to exercise, explore, and stay (10) [10] with others.`,
+                    options: [
+                        { id: 'A', text: "rewards", match: 1 },
+                        { id: 'B', text: "squad", match: 2 },
+                        { id: 'C', text: "trails", match: 3 },
+                        { id: 'D', text: "bond", match: 4 },
+                        { id: 'E', text: "communities", match: 5 },
+                        { id: 'F', text: "locations", match: 6 },
+                        { id: 'G', text: "real time", match: 7 },
+                        { id: 'H', text: "journey", match: 8 },
+                        { id: 'I', text: "dedicated", match: 9 },
+                        { id: 'J', text: "connected", match: 10 }
+                    ],
+                    hints: {
+                        1: "Verb (meaning: gives a prize for an action)",
+                        2: "Noun (meaning: a team or group)",
+                        3: "Noun, plural (meaning: paths left behind)",
+                        4: "Noun (meaning: a strong connection or relationship)",
+                        5: "Noun, plural (meaning: groups of people living in the same area or sharing interests)",
+                        6: "Noun, plural (meaning: specific places)",
+                        7: "Noun phrase (meaning: instantly, as it happens)",
+                        8: "Noun (meaning: a trip or travel activity)",
+                        9: "Adjective (meaning: very committed or serious about something)",
+                        10: "Adjective (meaning: linked with others)"
+                    }
+                },
+                intel: [
+                    { q: "How do players make flowers bloom on their Pikmin's heads?", opts: ["By walking 10,000 steps", "By feeding them nectar from fruit", "By planting seeds in the ground", "By defeating giant mushrooms"], ans: 1, type: "detail" },
+                    { q: "What is the primary purpose of the game Pikmin Bloom?", opts: ["To teach people how to garden", "To encourage people to walk outdoors and stay active", "To connect players through virtual battles", "To train people for marathons"], ans: 1, type: "author-purpose" }
+                ]
+            },
+            {
+                id: 2,
+                title: "The Phone-Free Debate",
+                subtitle: "Phones at the Table",
+                icon: "fa-mobile-screen",
+                stampIcon: "fa-bowl-food",
+                difficulty: "Medium",
+                cloze: {
+                    text: `In January 2026, a small ramen shop in Saitama, Japan, made international news by (1) [1] phones during meals. The owner had seen too many customers stare at screens while their noodles went cold. The rule soon started a wider discussion about whether phones belong at the dining table.<br><br>
+                           Some people support the idea. Ken, a noodle shop owner, says his noodles are (2) [2] the moment they are served. Because he puts a great deal of time and effort into making the broth, he believes customers should give the food their full (3) [3].<br><br>
+                           Marcus, a teacher, also likes phone-free restaurants for family meals. When phones are (4) [4], people often talk more and pay attention to one another. This can create a warmer dining (5) [5].<br><br>
+                           There are also practical reasons for limiting phone use. Some restaurants have (6) [6] seating, and customers may take longer to finish their meals if they are constantly checking their phones.<br><br>
+                           However, not everyone agrees. Jess, a college student, says she often eats alone and can use her phone without bothering anyone. Sarah adds that customers who post photos and (7) [7] online provide free (8) [8] for restaurants.<br><br>
+                           A total ban may therefore cause restaurants to (9) [9] useful publicity. The discussion shows that different restaurants may need different rules depending on the (10) [10].`,
+                    options: [
+                        { id: 'A', text: "banning", match: 1 },
+                        { id: 'B', text: "at their best", match: 2 },
+                        { id: 'C', text: "attention", match: 3 },
+                        { id: 'D', text: "put away", match: 4 },
+                        { id: 'E', text: "atmosphere", match: 5 },
+                        { id: 'F', text: "limited", match: 6 },
+                        { id: 'G', text: "reviews", match: 7 },
+                        { id: 'H', text: "promotion", match: 8 },
+                        { id: 'I', text: "miss out on", match: 9 },
+                        { id: 'J', text: "situation", match: 10 }
+                    ],
+                    hints: {
+                        1: "Verb+ing (meaning: officially forbidding)",
+                        2: "Phrase (meaning: in their greatest condition)",
+                        3: "Noun (meaning: focus or concentration)",
+                        4: "Phrasal verb (meaning: stored out of sight)",
+                        5: "Noun (meaning: mood or environment)",
+                        6: "Adjective (meaning: not many in number)",
+                        7: "Noun, plural (meaning: evaluations or opinions)",
+                        8: "Noun (meaning: advertising or marketing)",
+                        9: "Phrasal verb (meaning: lose the chance to benefit from)",
+                        10: "Noun (meaning: circumstance or context)"
+                    }
+                },
+                intel: [
+                    { q: "Why did the ramen shop owner in Saitama ban phones?", opts: ["The phones were causing interference with kitchen equipment.", "Customers were taking too many photos.", "Customers let their noodles go cold while staring at screens.", "He wanted to save on electricity and Wi-Fi costs."], ans: 2, type: "cause-effect" },
+                    { q: "What is ONE reason given in the text against banning phones?", opts: ["Customers eat faster when distracted.", "Restaurants might lose free promotion from online posts.", "The government requires phones to be allowed.", "Families communicate better through text messages."], ans: 1, type: "detail" }
+                ]
+            },
+            {
+                id: 3,
+                title: "The Queen on Two Boards",
+                subtitle: "PinkPantheress",
+                icon: "fa-chess-queen",
+                stampIcon: "fa-crown",
+                difficulty: "Medium",
+                cloze: {
+                    text: `In July 2025, fans were (1) [1] when a photo showed pop singer PinkPantheress winning a chess tournament. Few people knew that she played chess at all.<br><br>
+                           Her real name is Victoria Beverley Walker. She was born in Bath, England, in 2001 and (2) [2] in Kent. Her stage name is connected to The Pink Panther film series. Chess also runs in her family. Her aunt, Susan Lalic, is a five-time British Women’s Chess (3) [3] and an International Master.<br><br>
+                           PinkPantheress once thought about pursuing a (4) [4] in chess, but music came first. In 2021, while studying in London, she began posting songs on SoundCloud and TikTok. Fans quickly (5) [5], and her first mixtape earned her the BBC Sound of 2022 title.<br><br>
+                           Her music is known for blending different styles. She (6) [6] much of her own music and combines pop, drum and bass, UK garage, and samples from older songs.<br><br>
+                           However, success has not come without difficulties. Years of loud music damaged her hearing, and she has lost 80 percent of the hearing in her right ear. As a result, she must carefully check the (7) [7] during live shows.<br><br>
+                           In 2026, she received another major (8) [8] when she was named British Producer of the Year. She was the youngest person and first woman ever to receive this (9) [9]. Her story shows that talent and hard work can lead people down unexpected career (10) [10].`,
+                    options: [
+                        { id: 'A', text: "amazed", match: 1 },
+                        { id: 'B', text: "grew up", match: 2 },
+                        { id: 'C', text: "Champion", match: 3 },
+                        { id: 'D', text: "career", match: 4 },
+                        { id: 'E', text: "took notice", match: 5 },
+                        { id: 'F', text: "produces", match: 6 },
+                        { id: 'G', text: "volume", match: 7 },
+                        { id: 'H', text: "award", match: 8 },
+                        { id: 'I', text: "honor", match: 9 },
+                        { id: 'J', text: "paths", match: 10 }
+                    ],
+                    hints: {
+                        1: "Adjective (meaning: very surprised)",
+                        2: "Phrasal verb, past tense (meaning: became an adult)",
+                        3: "Noun (meaning: top winner of a competition)",
+                        4: "Noun (meaning: a profession or long-term job)",
+                        5: "Phrase, past tense (meaning: paid attention)",
+                        6: "Verb (meaning: creates or makes music/goods)",
+                        7: "Noun (meaning: loudness of sound)",
+                        8: "Noun (meaning: a prize given for an achievement)",
+                        9: "Noun (meaning: respect or high recognition)",
+                        10: "Noun, plural (meaning: routes or directions taken in life)"
+                    }
+                },
+                intel: [
+                    { q: "Why must PinkPantheress carefully check the volume during live shows?", opts: ["The venues have strict noise limits.", "She lost 80 percent of the hearing in her right ear.", "Her microphone is very sensitive.", "She wants to protect her fans' hearing."], ans: 1, type: "cause-effect" },
+                    { q: "What is PinkPantheress's family connection to chess?", opts: ["Her aunt is a five-time British Women’s Chess Champion.", "Her father invented a popular chess variation.", "Her sister plays for the national team.", "Her grandfather built wooden chessboards."], ans: 0, type: "detail" }
+                ]
+            },
+            {
+                id: 4,
+                title: "The British Food Case",
+                subtitle: "Fish and Chips",
+                icon: "fa-fish",
+                stampIcon: "fa-newspaper",
+                difficulty: "Medium",
+                cloze: {
+                    text: `Fish and chips is one of Britain’s best-known foods. Many British people consider it the national dish, and there are around 10,500 fish-and-chip shops in the UK. British people eat (1) [1] 382 million portions each year.<br><br>
+                           Historical records (2) [2] that fish and chips was first served in the 1860s. Some of the earliest known shops opened in London and Lancashire. The meal quickly became popular among the working class because fish from the North Sea was easy to (3) [3].<br><br>
+                           Fish and chips became so popular that it was even (4) [4] from food rationing during the Second World War. Many people believed that keeping the dish available helped improve public (5) [5] during a difficult period.<br><br>
+                           Today, going to a fish-and-chip shop remains an important part of British life. Modern shops, often called “chippies,” offer a large (6) [6] of foods. In addition to fried fish and potatoes, customers may choose pies, sausages, pickled eggs, and spring rolls.<br><br>
+                           The dish continues to be loved partly because it is connected with British history and everyday life. One (7) [7] can be simple, filling, and familiar. Its popularity has lasted for generations, even though people now have far more food choices.<br><br>
+                           Fish and chips is therefore more than just a meal. It has become part of British food (8) [8]. The long history of the dish also (9) [9] how food can become closely connected with national identity. Even today, fish-and-chip shops (10) [10] popular across the country.`,
+                    options: [
+                        { id: 'A', text: "roughly", match: 1 },
+                        { id: 'B', text: "suggest", match: 2 },
+                        { id: 'C', text: "come by", match: 3 },
+                        { id: 'D', text: "exempted", match: 4 },
+                        { id: 'E', text: "morale", match: 5 },
+                        { id: 'F', text: "variety", match: 6 },
+                        { id: 'G', text: "portion", match: 7 },
+                        { id: 'H', text: "culture", match: 8 },
+                        { id: 'I', text: "shows", match: 9 },
+                        { id: 'J', text: "remain", match: 10 }
+                    ],
+                    hints: {
+                        1: "Adverb (meaning: approximately)",
+                        2: "Verb (meaning: indicate or propose)",
+                        3: "Phrase (meaning: to obtain or find)",
+                        4: "Verb-ed (meaning: excused or freed from a rule)",
+                        5: "Noun (meaning: confidence or emotional spirit of a group)",
+                        6: "Noun (meaning: different types or choices)",
+                        7: "Noun (meaning: a serving or amount of food)",
+                        8: "Noun (meaning: the way of life for a group)",
+                        9: "Verb (meaning: demonstrates)",
+                        10: "Verb (meaning: to stay or continue to be)"
+                    }
+                },
+                intel: [
+                    { q: "Why was fish and chips popular among the working class in the 1860s?", opts: ["It was a luxury food.", "Fish from the North Sea was easy to get.", "The government handed it out for free.", "It was the only hot food available in London."], ans: 1, type: "cause-effect" },
+                    { q: "During World War II, why was fish and chips exempted from food rationing?", opts: ["Fish were caught mostly by soldiers.", "The dish helped improve public morale during a difficult period.", "Potatoes were completely immune to diseases.", "There was a massive surplus of oil."], ans: 1, type: "detail" }
+                ]
+            },
+            {
+                id: 5,
+                title: "Cute or Survival?",
+                subtitle: "Animal Behavior",
+                icon: "fa-paw",
+                stampIcon: "fa-magnifying-glass",
+                difficulty: "Medium",
+                cloze: {
+                    text: `People enjoy sharing cute animal videos online, but scientists who study animal (1) [1] point out that humans often misunderstand what animals are actually doing.<br><br>
+                           Red pandas are a good example. When they feel (2) [2] by a predator, they stand on their back legs and raise their front paws. To people, this may look like a friendly wave or a request for a hug. In reality, the red panda is trying to make itself appear larger and more dangerous. Its sharp claws help (3) [3] possible threats. What looks charming is actually a survival (4) [4].<br><br>
+                           Penguins are another example. Emperor penguins in Antarctica stand closely together in groups called huddles. Although this may look like a large group hug, the behavior helps them survive the (5) [5] cold. The penguins slowly move between the outside and center of the group so that no single bird stays in the coldest position for too long.<br><br>
+                           Gentoo and Adélie penguins are also misunderstood. They collect stones and place them near a partner, which may seem like a (6) [6] gift. However, the stones actually serve a (7) [7] purpose. Penguins use them to build (8) [8] that keep their eggs safe and dry above the icy ground.<br><br>
+                           These examples (9) [9] us that animal behavior should not always be interpreted from a human point of (10) [10].`,
+                    options: [
+                        { id: 'A', text: "behavior", match: 1 },
+                        { id: 'B', text: "threatened", match: 2 },
+                        { id: 'C', text: "scare away", match: 3 },
+                        { id: 'D', text: "strategy", match: 4 },
+                        { id: 'E', text: "freezing", match: 5 },
+                        { id: 'F', text: "romantic", match: 6 },
+                        { id: 'G', text: "practical", match: 7 },
+                        { id: 'H', text: "nests", match: 8 },
+                        { id: 'I', text: "remind", match: 9 },
+                        { id: 'J', text: "view", match: 10 }
+                    ],
+                    hints: {
+                        1: "Noun (meaning: actions or ways of acting)",
+                        2: "Adjective-ed (meaning: in danger or intimidated)",
+                        3: "Phrasal verb (meaning: to frighten away)",
+                        4: "Noun (meaning: a plan or method for survival)",
+                        5: "Adjective (meaning: extremely cold)",
+                        6: "Adjective (meaning: expressing love or affection)",
+                        7: "Adjective (meaning: useful or functional)",
+                        8: "Noun, plural (meaning: homes built by birds for eggs)",
+                        9: "Verb (meaning: to make someone remember something)",
+                        10: "Phrase part (meaning: perspective, as in 'point of ____')"
+                    }
+                },
+                intel: [
+                    { q: "Why do Emperor penguins stand closely together in huddles?", opts: ["To protect their food", "To survive the freezing cold", "To hide from predators", "To show affection for their mates"], ans: 1, type: "detail" },
+                    { q: "What is the real reason a red panda stands on its back legs?", opts: ["To reach fruit in trees", "To greet other red pandas", "To make itself appear larger and more dangerous", "To stretch its muscles before running"], ans: 2, type: "detail" }
+                ]
+            },
+            {
+                id: 6,
+                title: "The Fake Identity Case",
+                subtitle: "Catfishing",
+                icon: "fa-user-secret",
+                stampIcon: "fa-triangle-exclamation",
+                difficulty: "Medium",
+                cloze: {
+                    text: `“Catfishing” is a (1) [1] used to describe a person pretending to be someone else online in order to trick others. The expression became widely known after the 2010 documentary Catfish.<br><br>
+                           The film follows a man who (2) [2] feelings for a woman he has only spoken to online. When he finally meets her in person, she (3) [3] to be someone completely different. Since the film was released, catfishing has become recognized as a serious (4) [4] to privacy and personal safety.<br><br>
+                           There are several warning signs to look for. Fake social media accounts may contain very few photos, posts, or connections. Some may have been created only (5) [5], and their profile pictures may have been taken from another person’s account.<br><br>
+                           A phone or video call can also help. If someone repeatedly tries to (6) [6] showing their face, they may not be who they claim to be. It is also useful to search for the person on different social media (7) [7].<br><br>
+                           People should also be careful when someone makes a (8) [8] for money, private photos, or personal details. Honest people usually do not need these things simply to get to know someone.<br><br>
+                           Meeting people online is common, and many meaningful relationships begin that way. Still, users should remain (9) [9]. If something feels wrong, it is wise to trust your (10) [10] and take steps to protect yourself.`,
+                    options: [
+                        { id: 'A', text: "term", match: 1 },
+                        { id: 'B', text: "develops", match: 2 },
+                        { id: 'C', text: "turns out", match: 3 },
+                        { id: 'D', text: "threat", match: 4 },
+                        { id: 'E', text: "recently", match: 5 },
+                        { id: 'F', text: "avoid", match: 6 },
+                        { id: 'G', text: "platforms", match: 7 },
+                        { id: 'H', text: "request", match: 8 },
+                        { id: 'I', text: "alert", match: 9 },
+                        { id: 'J', text: "instincts", match: 10 }
+                    ],
+                    hints: {
+                        1: "Noun (meaning: a word or phrase)",
+                        2: "Verb (meaning: grows or forms gradually)",
+                        3: "Phrasal verb (meaning: proves to be in the end)",
+                        4: "Noun (meaning: a danger or risk)",
+                        5: "Adverb (meaning: not long ago)",
+                        6: "Verb (meaning: to stay away from doing something)",
+                        7: "Noun, plural (meaning: websites or apps like Facebook/Instagram)",
+                        8: "Noun (meaning: an act of asking politely or formally)",
+                        9: "Adjective (meaning: watchful and aware of dangers)",
+                        10: "Noun, plural (meaning: natural feelings or intuition)"
+                    }
+                },
+                intel: [
+                    { q: "What does the term 'catfishing' refer to in this article?", opts: ["A new method of catching fish", "Pretending to be someone else online to trick others", "Creating a documentary film", "A social media platform"], ans: 1, type: "vocabulary" },
+                    { q: "What is mentioned as a warning sign of a fake social media account?", opts: ["Having too many friends", "Posting videos every day", "Containing very few photos, posts, or connections", "Calling via video chat too often"], ans: 2, type: "detail" }
+                ]
+            }
+        ];
+
+        // --- FINAL VAULT QUESTIONS (Strictly cross-testing the 6 retained files) ---
+        const FINAL_QUESTIONS = [
+            {
+                q: "Which report discusses Emperor penguins huddling together in Antarctica to survive extreme cold?",
+                opts: ["Animal Behavior (Cute or Survival?)", "The Phone-Free Debate", "The Queen on Two Boards", "The British Food Case"],
+                ans: 0
+            },
+            {
+                q: "Vocabulary: Which word means 'to pretend to be someone else online in order to trick others'?",
+                opts: ["Catfishing", "Party Walk", "Morale", "Decor"],
+                ans: 0
+            },
+            {
+                q: "Who was a skilled chess player and became the youngest person and first woman named British Producer of the Year?",
+                opts: ["PinkPantheress", "Susan Lalic", "Morgiana", "Victoria Maar"],
+                ans: 0
+            },
+            {
+                q: "Why did a ramen shop owner in Saitama, Japan, establish a rule against smartphones during meals?",
+                opts: ["Customers let their noodles get cold while staring at screens", "Wi-Fi signals interfered with kitchen timers", "Taking photos of food was prohibited by city law", "The restaurant wanted customers to play video games instead"],
+                ans: 0
+            },
+            {
+                q: "Which food was exempted from rationing during World War II because it was believed to boost public morale?",
+                opts: ["Fish and chips", "Ramen broth", "Pickled eggs", "Stone-baked bread"],
+                ans: 0
+            },
+            {
+                q: "In which mobile app do players walk outdoors to raise plant-like creatures, gather fruit nectar, and leave petal trails on a map?",
+                opts: ["Pikmin Bloom", "SoundCloud Runner", "Catfish Tracker", "Party Walkers Tokyo"],
+                ans: 0
+            },
+            {
+                q: "Why does a red panda stand on its hind legs and raise its front paws when threatened by a predator?",
+                opts: ["To make itself appear larger and more dangerous", "To wave friendly greetings to humans", "To stretch its back muscles before climbing", "To catch nectar falling from trees"],
+                ans: 0
+            },
+            {
+                q: "Which behavior is highlighted as a common warning sign of online catfishing?",
+                opts: ["Repeatedly refusing video calls and having an account created only recently", "Playing too many chess tournaments with family members", "Collecting stones to build nests on icy ground", "Eating noodles alone without bothering anyone"],
+                ans: 0
+            },
+            {
+                q: "Connecting Themes: Both the Saitama ramen debate and the Catfish documentary deal with challenges related to...",
+                opts: ["Digital screens and modern online interactions", "Traditional British culinary heritage", "Wildlife protection strategies in freezing climates", "Organizing outdoor walking festivals in Taiwan"],
+                ans: 0
+            },
+            {
+                q: "What is the primary mission of an archive agent in this Code Red investigation?",
+                opts: ["Recover all 6 scattered magazine files and unlock the Final Exam Vault", "Memorize all restaurant rules across Japan", "Collect stones for penguin nesting colonies", "Win an international music production competition"],
+                ans: 0
+            }
+        ];
+
+        // --- STORAGE & MULTI-STUDENT PROFILE SCHEMA ---
+        const PROFILES_STORAGE_KEY = "magazineMissionProfiles";
+
+        // Global in-memory representation of device profiles
+        let profilesDatabase = {
+            profiles: {},
+            activeStudentId: null
+        };
+
+        // Active profile shortcut accessor
+        function getActiveProfile() {
+            if (!profilesDatabase.activeStudentId || !profilesDatabase.profiles[profilesDatabase.activeStudentId]) {
+                return null;
+            }
+            return profilesDatabase.profiles[profilesDatabase.activeStudentId];
+        }
+
+        function loadProfiles() {
+            const saved = localStorage.getItem(PROFILES_STORAGE_KEY);
+            if (saved) {
+                try {
+                    profilesDatabase = JSON.parse(saved);
+                    if (!profilesDatabase.profiles) profilesDatabase.profiles = {};
+                } catch (e) {
+                    console.error("Error loading profiles from localStorage", e);
+                    profilesDatabase = { profiles: {}, activeStudentId: null };
+                }
+            } else {
+                // Migration support: check old MissingMagFiles_Save
+                const oldSaved = localStorage.getItem("MissingMagFiles_Save");
+                if (oldSaved) {
+                    try {
+                        const oldState = JSON.parse(oldSaved);
+                        if (oldState.agentName) {
+                            const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'student_' + Date.now();
+                            profilesDatabase.profiles[newId] = {
+                                student: {
+                                    studentId: newId,
+                                    className: "Archive",
+                                    seatNo: "01",
+                                    name: oldState.agentName
+                                },
+                                progress: {},
+                                completedFiles: oldState.completedFiles || [],
+                                scores: oldState.scores || {},
+                                vaultUnlocked: !!oldState.vaultUnlocked,
+                                mode: oldState.mode || 'free',
+                                finalScore: oldState.finalScore || 0,
+                                finalTitle: null,
+                                perfectBadge: false,
+                                errorLog: oldState.errorLog || [],
+                                pendingSync: []
+                            };
+                            profilesDatabase.activeStudentId = newId;
+                            saveProfiles();
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+
+        function saveProfiles() {
+            localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profilesDatabase));
+            updateUIState();
+        }
+
+        // --- GAS INTEGRATION & PENDING SYNC QUEUE ---
+        async function syncWithGas(payload) {
+            if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.trim() === "") {
+                return; // Silently bypass if no URL is provided
+            }
+
+            const profile = getActiveProfile();
+
+            try {
+                // Send with POST using no-cors and text/plain to avoid CORS preflight on GitHub Pages
+                const res = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+
+                // If success, try to flush pending queue
+                if (profile && profile.pendingSync && profile.pendingSync.length > 0) {
+                    const queue = [...profile.pendingSync];
+                    profile.pendingSync = [];
+                    for (const pendingItem of queue) {
+                        try {
+                            await fetch(GAS_WEB_APP_URL, {
+                                method: 'POST',
+                                mode: 'no-cors',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify(pendingItem)
+                            });
+                        } catch (e) {
+                            // Requeue if failed
+                            profile.pendingSync.push(pendingItem);
+                        }
+                    }
+                    saveProfiles();
+                }
+            } catch (err) {
+                // Network failure: enqueue into pendingSync
+                if (profile) {
+                    if (!profile.pendingSync) profile.pendingSync = [];
+                    profile.pendingSync.push(payload);
+                    saveProfiles();
+                }
+            }
+        }
+
+        function sendProgressToTeacher(fileId) {
+            const profile = getActiveProfile();
+            if (!profile) return;
+            const file = GAME_DATA.find(f => f.id === fileId);
+            const p = profile.progress[fileId] || {};
+
+            const payload = {
+                type: "progress",
+                studentId: profile.student.studentId,
+                className: profile.student.className,
+                seatNo: profile.student.seatNo,
+                studentName: profile.student.name,
+                data: {
+                    fileId: fileId,
+                    fileTitle: file ? file.title : `File ${fileId}`,
+                    firstScore: p.firstScore !== null && p.firstScore !== undefined ? p.firstScore : null,
+                    finalScore: p.finalScore !== null && p.finalScore !== undefined ? p.finalScore : null,
+                    retryCount: p.retryCount || 0,
+                    errorCount: p.errorCount || 0,
+                    correctedCount: p.correctedCount || 0,
+                    completed: !!p.completed,
+                    completedAt: p.completedAt || new Date().toISOString()
+                }
+            };
+            syncWithGas(payload);
+        }
+
+        function sendAttemptToTeacher(fileId, attemptNumber, score, totalQuestions, wrongItems) {
+            const profile = getActiveProfile();
+            if (!profile) return;
+            const file = GAME_DATA.find(f => f.id === fileId);
+
+            const payload = {
+                type: "attempt",
+                studentId: profile.student.studentId,
+                className: profile.student.className,
+                seatNo: profile.student.seatNo,
+                studentName: profile.student.name,
+                data: {
+                    fileId: fileId,
+                    fileTitle: file ? file.title : `File ${fileId}`,
+                    section: "cloze",
+                    attemptNumber: attemptNumber,
+                    score: score,
+                    totalQuestions: totalQuestions,
+                    wrongItems: wrongItems
+                }
+            };
+            syncWithGas(payload);
+        }
+
+        function sendErrorToTeacher(errorItem) {
+            const profile = getActiveProfile();
+            if (!profile || !errorItem) return;
+
+            const payload = {
+                type: "error",
+                studentId: profile.student.studentId,
+                className: profile.student.className,
+                seatNo: profile.student.seatNo,
+                studentName: profile.student.name,
+                data: {
+                    errorId: errorItem.errorId,
+                    fileId: errorItem.fileId,
+                    fileTitle: errorItem.fileTitle,
+                    section: errorItem.section,
+                    questionNumber: errorItem.questionNumber,
+                    questionType: errorItem.questionType || "vocabulary",
+                    questionText: errorItem.questionText,
+                    firstAnswer: errorItem.firstAnswer,
+                    correctAnswer: errorItem.correctAnswer,
+                    wrongCount: errorItem.wrongCount || 1,
+                    corrected: !!errorItem.corrected,
+                    firstWrongAt: errorItem.firstWrongAt,
+                    correctedAt: errorItem.correctedAt || null
+                }
+            };
+            syncWithGas(payload);
+        }
+
+        function sendFinalResultToTeacher(finalData) {
+            const profile = getActiveProfile();
+            if (!profile) return;
+
+            const payload = {
+                type: "final",
+                studentId: profile.student.studentId,
+                className: profile.student.className,
+                seatNo: profile.student.seatNo,
+                studentName: profile.student.name,
+                data: finalData
+            };
+            syncWithGas(payload);
+        }
+
+        // --- NAVIGATION & UI UPDATER ---
+        function hideAllScreens() {
+            const screens = [
+                'screen-landing', 'screen-board', 'screen-file-intro',
+                'screen-cloze', 'screen-intel', 'screen-stamp-reveal',
+                'screen-vault', 'screen-certificate', 'screen-error-log', 'screen-progress'
+            ];
+            screens.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+        }
+
+        function navTo(screenId) {
+            hideAllScreens();
+            const target = document.getElementById(screenId);
+            if (target) target.classList.remove('hidden');
+
+            const profile = getActiveProfile();
+            const topBar = document.getElementById('top-bar');
+
+            if (screenId !== 'screen-landing' && profile && profile.student) {
+                topBar.classList.remove('hidden');
+            } else {
+                topBar.classList.add('hidden');
+            }
+            window.scrollTo(0, 0);
+        }
+
+        function updateUIState() {
+            const profile = getActiveProfile();
+            if (!profile) return;
+
+            const totalFiles = GAME_DATA.length;
+
+            // Header Agent Label
+            const agentLabel = `${profile.student.className}-${profile.student.seatNo} ${profile.student.name}`;
+            document.getElementById('display-agent-name').textContent = agentLabel;
+
+            // Evidence Stamps
+            const completedCount = profile.completedFiles ? profile.completedFiles.length : 0;
+            document.getElementById('stamp-count-text').textContent = `${completedCount} / ${totalFiles}`;
+
+            const tracker = document.getElementById('stamp-tracker');
+            tracker.innerHTML = '';
+            for (let i = 0; i < totalFiles; i++) {
+                const dot = document.createElement('div');
+                dot.className = `w-2.5 h-2.5 md:w-3 md:h-3 rounded-full border border-archive-burgundy ${i < completedCount ? 'bg-archive-burgundy shadow-[0_0_5px_#722f37]' : 'bg-transparent'}`;
+                tracker.appendChild(dot);
+            }
+
+            // Error Badges
+            updateErrorBadge();
+
+            // Vault Lock/Unlock
+            const vaultUnlocked = completedCount >= totalFiles;
+            profile.vaultUnlocked = vaultUnlocked;
+
+            if (vaultUnlocked) {
+                document.getElementById('vault-icon').className = 'fa-solid fa-lock-open text-5xl text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.8)]';
+                document.getElementById('vault-status-locked').classList.add('hidden');
+                document.getElementById('vault-status-unlocked').classList.remove('hidden');
+                document.getElementById('final-vault').classList.replace('border-[#1a202c]', 'border-green-600');
+            } else {
+                document.getElementById('vault-icon').className = 'fa-solid fa-lock text-5xl text-gray-400 mb-4 drop-shadow-md';
+                document.getElementById('vault-status-locked').classList.remove('hidden');
+                document.getElementById('vault-status-unlocked').classList.add('hidden');
+                document.getElementById('led-red').className = `w-4 h-4 rounded-full ${completedCount < 3 ? 'bg-red-600 shadow-[0_0_10px_red]' : 'bg-gray-700'}`;
+                document.getElementById('led-yellow').className = `w-4 h-4 rounded-full ${completedCount >= 3 && completedCount < totalFiles ? 'bg-yellow-400 shadow-[0_0_10px_yellow]' : 'bg-gray-700'}`;
+                document.getElementById('led-green').className = `w-4 h-4 rounded-full bg-gray-700`;
+            }
+
+            renderMissionBoard();
+        }
+
+        // --- CUSTOM MODAL ---
+        function showModal(title, message, onConfirm = null) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-msg').innerHTML = message;
+
+            const btnCancel = document.getElementById('modal-btn-cancel');
+            const btnConfirm = document.getElementById('modal-btn-confirm');
+
+            const newCancel = btnCancel.cloneNode(true);
+            const newConfirm = btnConfirm.cloneNode(true);
+            btnCancel.parentNode.replaceChild(newCancel, btnCancel);
+            btnConfirm.parentNode.replaceChild(newConfirm, btnConfirm);
+
+            if (onConfirm) {
+                newCancel.classList.remove('hidden');
+                newCancel.onclick = () => document.getElementById('custom-modal').classList.add('hidden');
+                newConfirm.onclick = () => {
+                    document.getElementById('custom-modal').classList.add('hidden');
+                    onConfirm();
+                };
+            } else {
+                newCancel.classList.add('hidden');
+                newConfirm.textContent = "OK";
+                newConfirm.onclick = () => document.getElementById('custom-modal').classList.add('hidden');
+            }
+
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        // --- AGENT REGISTRATION & CHANGE AGENT ---
+        function handleLogin() {
+            const classInput = document.getElementById('reg-class').value.trim();
+            const seatInput = document.getElementById('reg-seat').value.trim();
+            const nameInput = document.getElementById('reg-name').value.trim();
+
+            if (!classInput) {
+                showModal("Registration Error", "Please enter your Class.");
+                return;
+            }
+            if (!seatInput || !/^\d+$/.test(seatInput)) {
+                showModal("Registration Error", "Please enter a valid numeric Seat No.");
+                return;
+            }
+            if (!nameInput) {
+                showModal("Registration Error", "Please enter your Name.");
+                return;
+            }
+
+            // Look for existing profile matching Class + Seat + Name (case-insensitive)
+            let matchedStudentId = null;
+            for (const sId in profilesDatabase.profiles) {
+                const p = profilesDatabase.profiles[sId];
+                if (p.student &&
+                    p.student.className.toLowerCase() === classInput.toLowerCase() &&
+                    p.student.seatNo === seatInput &&
+                    p.student.name.trim().toLowerCase() === nameInput.toLowerCase()) {
+                    matchedStudentId = sId;
+                    break;
+                }
+            }
+
+            if (matchedStudentId) {
+                // Resume existing session
+                profilesDatabase.activeStudentId = matchedStudentId;
+            } else {
+                // Create brand new profile with crypto.randomUUID()
+                const newStudentId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'agent_' + Date.now();
+                profilesDatabase.profiles[newStudentId] = {
+                    student: {
+                        studentId: newStudentId,
+                        className: classInput,
+                        seatNo: seatInput,
+                        name: nameInput
+                    },
+                    progress: {},
+                    completedFiles: [],
+                    scores: {},
+                    vaultUnlocked: false,
+                    mode: 'free',
+                    finalScore: 0,
+                    finalTitle: null,
+                    perfectBadge: false,
+                    errorLog: [],
+                    pendingSync: []
+                };
+                profilesDatabase.activeStudentId = newStudentId;
+            }
+
+            saveProfiles();
+            navTo('screen-board');
+        }
+
+        function handleChangeAgent() {
+            // Save state but switch active profile to null and return to login
+            profilesDatabase.activeStudentId = null;
+            localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profilesDatabase));
+            
+            document.getElementById('reg-class').value = '';
+            document.getElementById('reg-seat').value = '';
+            document.getElementById('reg-name').value = '';
+            
+            navTo('screen-landing');
+        }
+
+        function toggleMode() {
+            const profile = getActiveProfile();
+            if (!profile) return;
+            profile.mode = document.getElementById('mode-select').value;
+            saveProfiles();
+        }
+
+        // --- MISSION BOARD RENDERING ---
+        function renderMissionBoard() {
+            const profile = getActiveProfile();
+            if (!profile) return;
+
+            const grid = document.getElementById('files-grid');
+            grid.innerHTML = '';
+            document.getElementById('mode-select').value = profile.mode || 'free';
+
+            GAME_DATA.forEach((file, index) => {
+                const isCompleted = profile.completedFiles && profile.completedFiles.includes(file.id);
+
+                let isLocked = false;
+                if (profile.mode === 'sequential') {
+                    if (index > 0 && (!profile.completedFiles || !profile.completedFiles.includes(GAME_DATA[index - 1].id))) {
+                        isLocked = true;
+                    }
+                }
+
+                const folderDiv = document.createElement('div');
+                folderDiv.className = `manila-folder p-4 h-40 flex flex-col justify-between ${isCompleted ? 'recovered' : ''} ${isLocked ? 'locked' : ''}`;
+
+                if (!isLocked && !isCompleted) {
+                    folderDiv.onclick = () => openFileIntro(file.id);
+                } else if (isCompleted) {
+                    folderDiv.onclick = () => openFileIntro(file.id); // Allow reviewing/practicing
+                    folderDiv.title = "Click to review this recovered file.";
+                }
+
+                const statusBadge = isCompleted
+                    ? `<span class="text-xs bg-archive-green text-white px-2 py-1 rounded-sm"><i class="fa-solid fa-check mr-1"></i>RECOVERED</span>`
+                    : (isLocked
+                        ? `<span class="text-xs bg-gray-500 text-white px-2 py-1 rounded-sm"><i class="fa-solid fa-lock mr-1"></i>CLASSIFIED</span>`
+                        : `<span class="text-xs bg-archive-orange text-white px-2 py-1 rounded-sm">ACTIVE CASE</span>`);
+
+                folderDiv.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-typewriter font-bold text-gray-500 text-sm">FILE 0${file.id}</span>
+                            <i class="fa-solid ${file.icon} text-gray-400"></i>
+                        </div>
+                        <h3 class="font-headline font-bold text-lg leading-tight text-archive-bluegray">${file.title}</h3>
+                        <p class="text-xs text-gray-600 mt-1 italic">${file.subtitle}</p>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        ${statusBadge}
+                        ${isCompleted ? `<div class="stamp-icon collected !w-8 !h-8 !text-sm"><i class="fa-solid ${file.stampIcon}"></i></div>` : ''}
+                    </div>
+                `;
+                grid.appendChild(folderDiv);
+            });
+        }
+
+        // --- FILE INTRO ---
+        let currentFileId = null;
+
+        function openFileIntro(id) {
+            currentFileId = id;
+            const file = GAME_DATA.find(f => f.id === id);
+
+            document.getElementById('intro-file-title').innerHTML = `FILE 0${id}: <br>${file.title}`;
+            document.getElementById('intro-file-icon').className = `fa-solid ${file.icon}`;
+            document.getElementById('intro-target-stamp').innerHTML = `<i class="fa-solid ${file.stampIcon}"></i>`;
+
+            navTo('screen-file-intro');
+        }
+
+        // --- CLOZE PHASE ---
+        let clozeSelectedWord = null;
+        let clozeState = {};
+        let clozeAttempts = 0;
+        let isMobileBankExpanded = false;
+
+        function toggleMobileWordBank() {
+            const body = document.getElementById('word-bank-body');
+            const chevron = document.getElementById('mobile-bank-chevron');
+            const text = document.getElementById('mobile-bank-toggle-text');
+
+            isMobileBankExpanded = !isMobileBankExpanded;
+            if (isMobileBankExpanded) {
+                body.classList.remove('is-collapsed');
+                chevron.classList.add('rotate-180');
+                text.textContent = "HIDE";
+            } else {
+                body.classList.add('is-collapsed');
+                chevron.classList.remove('rotate-180');
+                text.textContent = "SHOW";
+            }
+        }
+
+        function extractSentenceForBlank(rawHtml, bId) {
+            const clean = rawHtml.replace(/<br\s*[\/]?>/gi, " ");
+            const regex = new RegExp(`([^.!?\\n]+?\\(${bId}\\)\\s*\\[${bId}\\][^.!?\\n]+?[.!?])`, 'i');
+            const match = clean.match(regex);
+            if (match && match[1]) {
+                return match[1].replace(new RegExp(`\\(${bId}\\)\\s*\\[${bId}\\]`, 'g'), '______').replace(/\s+/g, ' ').trim();
+            }
+            return `Sentence containing Blank (${bId}).`;
+        }
+
+        function startClozePhase() {
+            const file = GAME_DATA.find(f => f.id === currentFileId);
+            clozeState = {};
+            clozeSelectedWord = null;
+            clozeAttempts = 0;
+
+            document.getElementById('cloze-title').textContent = file.title;
+
+            // Build Text with blanks
+            let htmlText = file.cloze.text;
+            htmlText = htmlText.replace(/\[(\d+)\]/g, (match, p1) => {
+                return `<span class="cloze-blank" data-id="${p1}" onclick="handleBlankClick('${p1}')">______</span>`;
+            });
+            document.getElementById('cloze-text').innerHTML = htmlText;
+
+            // Build Word Bank (Exactly 10 items, shuffled A-J)
+            const bankContainer = document.getElementById('word-bank');
+            bankContainer.innerHTML = '';
+
+            const options = [...file.cloze.options];
+            options.sort(() => Math.random() - 0.5);
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'word-option px-2.5 py-1.5 text-[15px] rounded font-typewriter font-bold shadow-sm break-words text-left leading-tight';
+                btn.textContent = `${opt.id}. ${opt.text}`;
+                btn.id = `word-opt-${opt.id}`;
+                btn.onclick = () => handleWordClick(opt.id, opt.text);
+                bankContainer.appendChild(btn);
+            });
+
+            // Reset mobile bank collapse state
+            isMobileBankExpanded = false;
+            const mobileBody = document.getElementById('word-bank-body');
+            const chevron = document.getElementById('mobile-bank-chevron');
+            const toggleText = document.getElementById('mobile-bank-toggle-text');
+            if (mobileBody) {
+                mobileBody.classList.add('is-collapsed');
+                mobileBody.classList.remove('hidden');
+            }
+            if (chevron) chevron.classList.remove('rotate-180');
+            if (toggleText) toggleText.textContent = "SHOW";
+            const countEl = document.getElementById('mobile-bank-count');
+            if (countEl) countEl.textContent = `${options.length} items`;
+
+            updateClozeUI();
+            document.getElementById('btn-hint').classList.add('hidden');
+            document.getElementById('cloze-feedback').innerHTML = '';
+
+            navTo('screen-cloze');
+        }
+
+        function handleWordClick(id, text) {
+            if (clozeSelectedWord) {
+                const prev = document.getElementById(`word-opt-${clozeSelectedWord.id}`);
+                if (prev) prev.classList.remove('selected');
+            }
+
+            clozeSelectedWord = { id, text };
+            const curr = document.getElementById(`word-opt-${id}`);
+            if (curr) curr.classList.add('selected');
+
+            document.querySelectorAll('.cloze-blank').forEach(b => {
+                if (!clozeState[b.dataset.id]) b.classList.add('active-target');
+            });
+        }
+
+        function handleBlankClick(blankId) {
+            document.querySelectorAll('.cloze-blank').forEach(b => b.classList.remove('active-target'));
+            const blankElement = document.querySelector(`.cloze-blank[data-id="${blankId}"]`);
+
+            if (clozeSelectedWord) {
+                if (clozeState[blankId]) {
+                    const oldWordId = clozeState[blankId].id;
+                    const oldBtn = document.getElementById(`word-opt-${oldWordId}`);
+                    if (oldBtn) oldBtn.disabled = false;
+                }
+
+                clozeState[blankId] = clozeSelectedWord;
+                blankElement.textContent = clozeSelectedWord.text;
+                blankElement.classList.add('text-archive-burgundy');
+
+                const optBtn = document.getElementById(`word-opt-${clozeSelectedWord.id}`);
+                if (optBtn) {
+                    optBtn.disabled = true;
+                    optBtn.classList.remove('selected');
+                }
+                clozeSelectedWord = null;
+
+            } else if (clozeState[blankId]) {
+                const oldWordId = clozeState[blankId].id;
+                const oldBtn = document.getElementById(`word-opt-${oldWordId}`);
+                if (oldBtn) oldBtn.disabled = false;
+                delete clozeState[blankId];
+                blankElement.textContent = '______';
+                blankElement.classList.remove('text-archive-burgundy', 'correct', 'incorrect');
+            }
+
+            updateClozeUI();
+        }
+
+        function updateClozeUI() {
+            const filledCount = Object.keys(clozeState).length;
+            const file = GAME_DATA.find(f => f.id === currentFileId);
+            const totalBlanks = file ? file.cloze.options.length : 10;
+            document.getElementById('cloze-progress').textContent = `${filledCount} / ${totalBlanks} Filled`;
+
+            const submitBtn = document.getElementById('btn-submit-cloze');
+            if (filledCount === totalBlanks) {
+                submitBtn.disabled = false;
+                submitBtn.classList.replace('bg-archive-green', 'bg-archive-orange');
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.classList.replace('bg-archive-orange', 'bg-archive-green');
+            }
+        }
+
+        function submitCloze() {
+            clozeAttempts++;
+            const profile = getActiveProfile();
+            const file = GAME_DATA.find(f => f.id === currentFileId);
+            const totalBlanks = file.cloze.options.length;
+            let correctCount = 0;
+            const wrongItems = [];
+
+            if (!profile.errorLog) profile.errorLog = [];
+            if (!profile.progress) profile.progress = {};
+            if (!profile.progress[currentFileId]) {
+                profile.progress[currentFileId] = {
+                    completed: false,
+                    firstScore: null,
+                    finalScore: null,
+                    retryCount: 0,
+                    errorCount: 0,
+                    correctedCount: 0,
+                    completedAt: null
+                };
+            }
+
+            const p = profile.progress[currentFileId];
+            p.retryCount = (p.retryCount || 0) + 1;
+
+            // Evaluate each blank
+            document.querySelectorAll('.cloze-blank').forEach(blank => {
+                const bId = blank.dataset.id;
+                blank.classList.remove('correct', 'incorrect');
+
+                const correctOption = file.cloze.options.find(o => o.match == bId);
+                const userChoice = clozeState[bId];
+                const errorRecordKey = `file${String(file.id).padStart(2, '0')}-cloze-${String(bId).padStart(2, '0')}`;
+                const existingIndex = profile.errorLog.findIndex(e => e.errorId === errorRecordKey);
+
+                if (userChoice && userChoice.id === correctOption.id) {
+                    correctCount++;
+                    blank.classList.add('correct');
+                    blank.onclick = null;
+
+                    // If previously mistaken, mark as Corrected (NEVER delete)
+                    if (existingIndex > -1) {
+                        const rec = profile.errorLog[existingIndex];
+                        rec.currentCorrect = true;
+                        if (!rec.corrected) {
+                            rec.corrected = true;
+                            rec.correctedAt = new Date().toISOString();
+                            sendErrorToTeacher(rec);
+                        }
+                    }
+                } else {
+                    wrongItems.push(`Q${bId}`);
+                    blank.classList.add('incorrect');
+
+                    const sentence = extractSentenceForBlank(file.cloze.text, bId);
+                    const hint = file.cloze.hints[bId] || "Contextual clue available.";
+                    const wrongText = userChoice ? `${userChoice.id}. ${userChoice.text}` : "(None)";
+
+                    if (existingIndex > -1) {
+                        const rec = profile.errorLog[existingIndex];
+                        rec.wrongCount = (rec.wrongCount || 1) + 1;
+                        rec.currentCorrect = false;
+                        // firstAnswer is preserved and NEVER overwritten!
+                        sendErrorToTeacher(rec);
+                    } else {
+                        const newErr = {
+                            errorId: errorRecordKey,
+                            fileId: file.id,
+                            fileTitle: file.title,
+                            section: "cloze",
+                            questionNumber: parseInt(bId),
+                            questionType: "vocabulary",
+                            questionText: sentence,
+                            firstAnswer: wrongText, // Fixed first answer
+                            correctAnswer: `${correctOption.id}. ${correctOption.text}`,
+                            firstAttemptCorrect: false,
+                            currentCorrect: false,
+                            wrongCount: 1,
+                            corrected: false,
+                            firstWrongAt: new Date().toISOString(),
+                            correctedAt: null
+                        };
+                        profile.errorLog.push(newErr);
+                        sendErrorToTeacher(newErr);
+                    }
+
+                    // Return wrong word to bank
+                    if (userChoice) {
+                        const btn = document.getElementById(`word-opt-${userChoice.id}`);
+                        if (btn) btn.disabled = false;
+                        delete clozeState[bId];
+                        blank.textContent = '______';
+                        blank.onclick = () => handleBlankClick(bId);
+                    }
+                }
+            });
+
+            // Update Progress Scores
+            if (p.firstScore === null || p.firstScore === undefined) {
+                p.firstScore = correctCount; // strictly set once
+                p.errorCount = totalBlanks - correctCount;
+            }
+            p.finalScore = correctCount;
+            p.correctedCount = profile.errorLog.filter(e => e.fileId === file.id && e.corrected).length;
+
+            saveProfiles();
+            updateClozeUI();
+
+            // Send Progress to Teacher via GAS
+            sendProgressToTeacher(currentFileId);
+
+            // Send Attempt Record to Teacher via GAS
+            sendAttemptToTeacher(currentFileId, clozeAttempts, correctCount, totalBlanks, wrongItems);
+
+            const feedback = document.getElementById('cloze-feedback');
+            if (correctCount === totalBlanks) {
+                feedback.innerHTML = `<span class="text-archive-green"><i class="fa-solid fa-check-circle"></i> Evidence Accuracy: 100%. Advancing to Intel Check...</span>`;
+                document.getElementById('btn-submit-cloze').disabled = true;
+
+                setTimeout(() => {
+                    startIntelPhase();
+                }, 1400);
+            } else {
+                feedback.innerHTML = `<span class="text-archive-red"><i class="fa-solid fa-triangle-exclamation"></i> Accuracy: ${correctCount} / ${totalBlanks}. Misplaced fragments recorded to Error Log.</span>`;
+                if (clozeAttempts >= 1) {
+                    document.getElementById('btn-hint').classList.remove('hidden');
+                }
+            }
+        }
+
+        function requestHint() {
+            const file = GAME_DATA.find(f => f.id === currentFileId);
+            let hintMsg = "Review the context of each paragraph carefully.";
+            for (let i = 1; i <= file.cloze.options.length; i++) {
+                const bId = String(i);
+                if (!clozeState[bId]) {
+                    hintMsg = `Hint for Blank (${i}): ${file.cloze.hints[i]}`;
+                    break;
+                }
+            }
+            showModal("Intel Hint", hintMsg);
+        }
+
+        // --- INTEL PHASE ---
+        function startIntelPhase() {
+            const file = GAME_DATA.find(f => f.id === currentFileId);
+            const container = document.getElementById('intel-questions-container');
+            container.innerHTML = '';
+
+            file.intel.forEach((q, index) => {
+                let html = `
+                <div class="mb-6 intel-q-block" data-ans="${q.ans}" data-type="${q.type || 'detail'}">
+                    <p class="font-bold text-lg mb-3 font-article">${index + 1}. ${q.q}</p>
+                    <div class="space-y-2 pl-4">
+                `;
+                q.opts.forEach((opt, oIndex) => {
+                    html += `
+                        <label class="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-100 rounded">
+                            <input type="radio" name="q${index}" value="${oIndex}" class="form-radio h-5 w-5 text-archive-orange accent-archive-orange">
+                            <span class="text-body">${opt}</span>
+                        </label>
+                    `;
+                });
+                html += `</div></div>`;
+                container.innerHTML += html;
+            });
+
+            document.getElementById('intel-feedback').classList.add('hidden');
+            navTo('screen-intel');
+        }
+
+        function submitIntel() {
+            const profile = getActiveProfile();
+            const file = GAME_DATA.find(f => f.id === currentFileId);
+            const qBlocks = document.querySelectorAll('.intel-q-block');
+            let allAnswered = true;
+            let allCorrect = true;
+
+            if (!profile.errorLog) profile.errorLog = [];
+
+            qBlocks.forEach((block, index) => {
+                const selected = document.querySelector(`input[name="q${index}"]:checked`);
+                const qObj = file.intel[index];
+                const expectedAnsIdx = parseInt(block.dataset.ans);
+                const qType = block.dataset.type || "detail";
+                const errorRecordKey = `file${String(file.id).padStart(2, '0')}-intel-${String(index + 1).padStart(2, '0')}`;
+                const existingIndex = profile.errorLog.findIndex(e => e.errorId === errorRecordKey);
+
+                if (!selected) {
+                    allAnswered = false;
+                } else {
+                    const selectedIdx = parseInt(selected.value);
+                    if (selectedIdx === expectedAnsIdx) {
+                        // Correct
+                        if (existingIndex > -1) {
+                            const rec = profile.errorLog[existingIndex];
+                            rec.currentCorrect = true;
+                            if (!rec.corrected) {
+                                rec.corrected = true;
+                                rec.correctedAt = new Date().toISOString();
+                                sendErrorToTeacher(rec);
+                            }
+                        }
+                    } else {
+                        // Incorrect
+                        allCorrect = false;
+                        const wrongText = qObj.opts[selectedIdx];
+                        const correctText = qObj.opts[expectedAnsIdx];
+
+                        if (existingIndex > -1) {
+                            const rec = profile.errorLog[existingIndex];
+                            rec.wrongCount = (rec.wrongCount || 1) + 1;
+                            rec.currentCorrect = false;
+                            sendErrorToTeacher(rec);
+                        } else {
+                            const newErr = {
+                                errorId: errorRecordKey,
+                                fileId: file.id,
+                                fileTitle: file.title,
+                                section: "intel",
+                                questionNumber: index + 1,
+                                questionType: qType,
+                                questionText: qObj.q,
+                                firstAnswer: wrongText,
+                                correctAnswer: correctText,
+                                firstAttemptCorrect: false,
+                                currentCorrect: false,
+                                wrongCount: 1,
+                                corrected: false,
+                                firstWrongAt: new Date().toISOString(),
+                                correctedAt: null
+                            };
+                            profile.errorLog.push(newErr);
+                            sendErrorToTeacher(newErr);
+                        }
+                    }
+                }
+            });
+
+            if (!allAnswered) {
+                showModal("Incomplete Data", "Please answer all intelligence check questions before verifying.");
+                return;
+            }
+
+            const feedback = document.getElementById('intel-feedback');
+            feedback.classList.remove('hidden');
+
+            if (allCorrect) {
+                feedback.innerHTML = `<span class="text-archive-green"><i class="fa-solid fa-shield-check"></i> Intel Verified. Initiating Stamp Sequence.</span>`;
+
+                if (!profile.completedFiles.includes(currentFileId)) {
+                    profile.completedFiles.push(currentFileId);
+                }
+
+                // Mark file completed in progress
+                const p = profile.progress[currentFileId];
+                if (p) {
+                    p.completed = true;
+                    p.completedAt = new Date().toISOString();
+                }
+
+                saveProfiles();
+                sendProgressToTeacher(currentFileId);
+
+                setTimeout(() => {
+                    showStampReveal();
+                }, 900);
+            } else {
+                feedback.innerHTML = `<span class="text-archive-red"><i class="fa-solid fa-xmark"></i> Verification Failed. Review your answers and try again.</span>`;
+            }
+        }
+
+        // --- STAMP REVEAL ---
+        function showStampReveal() {
+            const profile = getActiveProfile();
+            const file = GAME_DATA.find(f => f.id === currentFileId);
+            document.getElementById('reveal-agent').textContent = profile ? profile.student.name : "AGENT";
+            document.getElementById('reveal-stamp-icon').innerHTML = `<i class="fa-solid ${file.stampIcon}"></i>`;
+
+            const icon = document.getElementById('reveal-stamp-icon');
+            const text = document.getElementById('reveal-stamp-text');
+            const btn = document.getElementById('btn-continue-board');
+
+            icon.style.opacity = '0';
+            text.style.opacity = '0';
+            text.style.animation = 'none';
+            btn.style.opacity = '0';
+            btn.style.visibility = 'hidden';
+
+            navTo('screen-stamp-reveal');
+
+            setTimeout(() => {
+                icon.style.opacity = '1';
+                setTimeout(() => {
+                    text.style.animation = 'stampDown 0.5s ease-out forwards';
+                    btn.style.visibility = 'visible';
+                    setTimeout(() => {
+                        btn.style.opacity = '1';
+                    }, 50);
+                }, 450);
+            }, 400);
+        }
+
+        function finishFile() {
+            updateUIState();
+            navTo('screen-board');
+
+            const profile = getActiveProfile();
+            if (profile && profile.completedFiles && profile.completedFiles.length === GAME_DATA.length) {
+                setTimeout(() => {
+                    const vaultEl = document.getElementById('final-vault');
+                    if (vaultEl) vaultEl.scrollIntoView({ behavior: 'smooth' });
+                }, 500);
+            }
+        }
+
+        // --- FINAL VAULT ---
+        function startFinalVault() {
+            const profile = getActiveProfile();
+            if (!profile || profile.completedFiles.length < GAME_DATA.length) return;
+
+            const container = document.getElementById('vault-questions-container');
+            container.innerHTML = '';
+
+            FINAL_QUESTIONS.forEach((q, index) => {
+                let html = `
+                <div class="bg-gray-800 p-4 rounded border border-gray-600 vault-q-block" data-ans="${q.ans}">
+                    <p class="font-bold text-lg mb-3 text-archive-mustard">${index + 1}. ${q.q}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                `;
+                q.opts.forEach((opt, oIndex) => {
+                    html += `
+                        <label class="flex items-center p-3 bg-gray-700 hover:bg-gray-600 rounded cursor-pointer border border-transparent transition-colors">
+                            <input type="radio" name="vq${index}" value="${oIndex}" class="form-radio text-green-500 bg-gray-900 border-gray-600 focus:ring-green-500 h-4 w-4 mr-3">
+                            <span class="text-sm">${opt}</span>
+                        </label>
+                    `;
+                });
+                html += `</div></div>`;
+                container.innerHTML += html;
+            });
+
+            document.getElementById('vault-feedback').classList.add('hidden');
+            navTo('screen-vault');
+        }
+
+        function submitFinalVault() {
+            const profile = getActiveProfile();
+            const qBlocks = document.querySelectorAll('.vault-q-block');
+            let allAnswered = true;
+            let correctAnswers = 0;
+
+            qBlocks.forEach((block, index) => {
+                const selected = document.querySelector(`input[name="vq${index}"]:checked`);
+                if (!selected) {
+                    allAnswered = false;
+                } else if (parseInt(selected.value) === parseInt(block.dataset.ans)) {
+                    correctAnswers++;
+                }
+            });
+
+            if (!allAnswered) {
+                showModal("Warning", "All final assessment queries must be answered to complete the mission.");
+                return;
+            }
+
+            profile.finalScore = correctAnswers;
+
+            // Determine Title
+            let finalTitle = "ARCHIVE TRAINEE";
+            if (correctAnswers >= 9) finalTitle = "MASTER ARCHIVIST";
+            else if (correctAnswers >= 8) finalTitle = "SENIOR INVESTIGATOR";
+            else if (correctAnswers >= 7) finalTitle = "FIELD AGENT";
+            profile.finalTitle = finalTitle;
+
+            // Check Perfect Evidence Badge: remainingErrors === 0
+            const errors = profile.errorLog || [];
+            const remainingErrors = errors.filter(e => !e.corrected).length;
+            profile.perfectBadge = (remainingErrors === 0);
+
+            saveProfiles();
+
+            // Send Final Result Payload to GAS
+            sendFinalResultToTeacher({
+                filesRecovered: profile.completedFiles.length,
+                evidenceStamps: profile.completedFiles.length,
+                finalScore: correctAnswers,
+                totalErrors: errors.length,
+                correctedErrors: errors.filter(e => e.corrected).length,
+                remainingErrors: remainingErrors,
+                finalTitle: finalTitle,
+                perfectBadge: profile.perfectBadge,
+                completedAt: new Date().toISOString()
+            });
+
+            generateCertificate();
+        }
+
+        // --- CERTIFICATE ---
+        function generateCertificate() {
+            const profile = getActiveProfile();
+            if (!profile) return;
+
+            const totalFiles = GAME_DATA.length;
+            document.getElementById('cert-agent').textContent = `${profile.student.className}-${profile.student.seatNo} ${profile.student.name}`;
+            document.getElementById('cert-score').textContent = `${profile.finalScore} / ${FINAL_QUESTIONS.length}`;
+            const certFilesEl = document.getElementById('cert-files-count');
+            if (certFilesEl) certFilesEl.textContent = `${profile.completedFiles.length} / ${totalFiles}`;
+
+            // Calculate overall accuracy
+            let totalFirstCloze = 0;
+            let count = 0;
+            for (let id in profile.progress) {
+                if (profile.progress[id].firstScore !== null && profile.progress[id].firstScore !== undefined) {
+                    totalFirstCloze += profile.progress[id].firstScore * 10;
+                    count++;
+                }
+            }
+            const avgCloze = count > 0 ? (totalFirstCloze / count) : 100;
+            const finalAcc = Math.round((avgCloze * 0.7) + ((profile.finalScore * 10) * 0.3));
+            document.getElementById('cert-accuracy').textContent = `${finalAcc}%`;
+
+            const rankEl = document.getElementById('cert-rank');
+            rankEl.textContent = profile.finalTitle || "MASTER ARCHIVIST";
+
+            // Perfect Badge display
+            const badgeContainer = document.getElementById('cert-perfect-badge-container');
+            const remainingErrors = (profile.errorLog || []).filter(e => !e.corrected).length;
+            if (remainingErrors === 0 && (profile.errorLog || []).length > 0) {
+                badgeContainer.classList.remove('hidden');
+            } else {
+                badgeContainer.classList.add('hidden');
+            }
+
+            // Stamps
+            const stampsContainer = document.getElementById('cert-stamps');
+            stampsContainer.innerHTML = '';
+            GAME_DATA.forEach(file => {
+                if (profile.completedFiles.includes(file.id)) {
+                    stampsContainer.innerHTML += `
+                        <div class="stamp-icon collected !w-12 !h-12 !text-xl" title="${file.title}">
+                            <i class="fa-solid ${file.stampIcon}"></i>
+                        </div>
+                    `;
+                }
+            });
+
+            navTo('screen-certificate');
+        }
+
+        // --- STUDENT ERROR LOGBOOK (MY ERROR FILES) ---
+        let currentErrorTab = 'still-unsolved';
+
+        function updateErrorBadge() {
+            const profile = getActiveProfile();
+            const list = profile && profile.errorLog ? profile.errorLog : [];
+            const remainingCount = list.filter(e => !e.corrected).length;
+
+            const badge = document.getElementById('header-error-badge');
+            const boardCount = document.getElementById('board-error-count');
+
+            if (boardCount) boardCount.textContent = remainingCount;
+            if (badge) {
+                if (remainingCount > 0) {
+                    badge.textContent = remainingCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+
+        function openErrorLog() {
+            navTo('screen-error-log');
+            renderErrorLog();
+        }
+
+        function switchErrorTab(tab) {
+            currentErrorTab = tab;
+            renderErrorLog();
+        }
+
+        function renderErrorLog() {
+            const profile = getActiveProfile();
+            const list = profile && profile.errorLog ? profile.errorLog : [];
+            const unsolvedList = list.filter(e => !e.corrected);
+            const correctedList = list.filter(e => e.corrected);
+
+            document.getElementById('error-remaining-count').textContent = unsolvedList.length;
+            document.getElementById('error-corrected-count').textContent = correctedList.length;
+            document.getElementById('error-total-count').textContent = list.length;
+
+            document.getElementById('tab-count-still-unsolved').textContent = unsolvedList.length;
+            document.getElementById('tab-count-corrected').textContent = correctedList.length;
+            document.getElementById('tab-count-all').textContent = list.length;
+
+            const banner = document.getElementById('error-all-clear-banner');
+            if (list.length > 0 && unsolvedList.length === 0) {
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            ['still-unsolved', 'corrected', 'all'].forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (btn) {
+                    if (t === currentErrorTab) {
+                        btn.classList.add('border-archive-red', 'text-archive-red');
+                        btn.classList.remove('border-transparent', 'text-gray-500');
+                    } else {
+                        btn.classList.remove('border-archive-red', 'text-archive-red');
+                        btn.classList.add('border-transparent', 'text-gray-500');
+                    }
+                }
+            });
+
+            let displayList = [];
+            if (currentErrorTab === 'still-unsolved') displayList = unsolvedList;
+            else if (currentErrorTab === 'corrected') displayList = correctedList;
+            else displayList = list;
+
+            const container = document.getElementById('error-cards-container');
+            const emptyState = document.getElementById('error-empty-state');
+            container.innerHTML = '';
+
+            if (displayList.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            displayList.forEach(item => {
+                const isCorrected = item.corrected;
+                const card = document.createElement('div');
+                card.className = `p-4 md:p-5 rounded-lg border-2 ${isCorrected ? 'bg-green-50 border-green-300' : 'bg-red-50 border-archive-red'} shadow-sm transition-all`;
+
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3 border-b pb-2 ${isCorrected ? 'border-green-200' : 'border-red-200'}">
+                        <div>
+                            <span class="font-headline font-bold text-base md:text-lg text-archive-bluegray">FILE 0${item.fileId} — ${item.fileTitle}</span>
+                            <div class="text-xs text-gray-500 font-typewriter">Question ${item.questionNumber} (${item.section.toUpperCase()})</div>
+                        </div>
+                        <span class="text-xs font-typewriter font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${isCorrected ? 'bg-archive-green text-white' : 'bg-archive-red text-white'}">
+                            ${isCorrected ? '<i class="fa-solid fa-check mr-1"></i> CORRECTED' : '<i class="fa-solid fa-xmark mr-1"></i> STILL UNSOLVED'}
+                        </span>
+                    </div>
+
+                    <div class="mb-3 bg-white p-3 rounded border border-gray-300 text-[16px] md:text-[17px] text-gray-800 leading-relaxed font-article italic">
+                        "${item.questionText}"
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs md:text-sm font-typewriter mb-3">
+                        <div class="p-2 rounded bg-white border border-red-200 text-archive-burgundy">
+                            <span class="font-bold text-gray-500 block text-[11px]">YOUR FIRST ANSWER:</span>
+                            <span>${item.firstAnswer}</span> ❌
+                        </div>
+                        <div class="p-2 rounded bg-white border border-green-200 text-archive-green">
+                            <span class="font-bold text-gray-500 block text-[11px]">CORRECT ANSWER:</span>
+                            <span class="font-bold">${item.correctAnswer}</span> ✅
+                        </div>
+                        <div class="p-2 rounded bg-white border border-gray-200 text-gray-700">
+                            <span class="font-bold text-gray-500 block text-[11px]">WRONG ATTEMPTS:</span>
+                            <span class="font-bold">${item.wrongCount || 1}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-2 border-t ${isCorrected ? 'border-green-200' : 'border-red-200'}">
+                        <button onclick="revisitFileFromError(${item.fileId})" class="btn-retro text-xs py-1.5 px-3 rounded !bg-archive-bluegray hover:!bg-archive-orange">
+                            <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> REVIEW THIS FILE
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function revisitFileFromError(fileId) {
+            openFileIntro(fileId);
+        }
+
+        // --- MY PROGRESS SCREEN ---
+        function openProgressScreen() {
+            renderProgressScreen();
+            navTo('screen-progress');
+        }
+
+        function renderProgressScreen() {
+            const profile = getActiveProfile();
+            if (!profile) return;
+
+            const totalFiles = GAME_DATA.length;
+            document.getElementById('progress-agent-id').textContent = `${profile.student.className}-${profile.student.seatNo} ${profile.student.name}`;
+
+            const filesCount = profile.completedFiles ? profile.completedFiles.length : 0;
+            document.getElementById('stat-files').textContent = `${filesCount} / ${totalFiles}`;
+            document.getElementById('stat-stamps').textContent = `${filesCount} / ${totalFiles}`;
+
+            const vaultStatusEl = document.getElementById('stat-vault');
+            if (profile.finalScore !== null && profile.finalScore !== undefined && profile.finalScore > 0) {
+                vaultStatusEl.textContent = `COMPLETED (${profile.finalScore}/${FINAL_QUESTIONS.length})`;
+                vaultStatusEl.className = 'text-sm md:text-base font-bold text-archive-green mt-2';
+            } else if (filesCount >= totalFiles) {
+                vaultStatusEl.textContent = 'UNLOCKED';
+                vaultStatusEl.className = 'text-base md:text-xl font-bold text-archive-orange mt-2';
+            } else {
+                vaultStatusEl.textContent = 'LOCKED';
+                vaultStatusEl.className = 'text-base md:text-xl font-bold text-gray-700 mt-2';
+            }
+
+            const errorList = profile.errorLog || [];
+            const totalErrors = errorList.length;
+            const correctedErrors = errorList.filter(e => e.corrected).length;
+            const remainingErrors = totalErrors - correctedErrors;
+
+            document.getElementById('stat-total-errors').textContent = totalErrors;
+            document.getElementById('stat-corrected-errors').textContent = correctedErrors;
+            document.getElementById('stat-unsolved-errors').textContent = remainingErrors;
+
+            // Perfect Badge indicator
+            const badgeSlot = document.getElementById('progress-badge-slot');
+            if (remainingErrors === 0 && totalErrors > 0) {
+                badgeSlot.innerHTML = `<span class="perfect-badge text-white font-bold text-xs px-3 py-1.5 rounded-full shadow inline-flex items-center gap-1.5"><i class="fa-solid fa-certificate"></i> PERFECT EVIDENCE BADGE</span>`;
+            } else {
+                badgeSlot.innerHTML = '';
+            }
+
+            // Averages
+            let firstScoreSum = 0, firstCount = 0;
+            let currentScoreSum = 0, currentCount = 0;
+            for (let fId in profile.progress) {
+                const item = profile.progress[fId];
+                if (item.firstScore !== null && item.firstScore !== undefined) {
+                    firstScoreSum += item.firstScore;
+                    firstCount++;
+                }
+                if (item.finalScore !== null && item.finalScore !== undefined) {
+                    currentScoreSum += item.finalScore;
+                    currentCount++;
+                }
+            }
+            document.getElementById('stat-first-score').textContent = firstCount > 0 ? `${(firstScoreSum / firstCount).toFixed(1)} / 10` : "N/A";
+            document.getElementById('stat-current-score').textContent = currentCount > 0 ? `${(currentScoreSum / currentCount).toFixed(1)} / 10` : "N/A";
+
+            // Breakdown Table
+            const tableBody = document.getElementById('progress-files-table');
+            tableBody.innerHTML = '';
+            GAME_DATA.forEach(f => {
+                const p = profile.progress && profile.progress[f.id] ? profile.progress[f.id] : {};
+                const isComp = profile.completedFiles && profile.completedFiles.includes(f.id);
+                const row = document.createElement('tr');
+                row.className = "border-b border-gray-200 hover:bg-gray-50";
+                row.innerHTML = `
+                    <td class="p-2 font-bold text-archive-bluegray">0${f.id}. ${f.title}</td>
+                    <td class="p-2">
+                        ${isComp 
+                            ? `<span class="bg-green-100 text-archive-green font-bold px-2 py-0.5 rounded text-xs">RECOVERED</span>` 
+                            : `<span class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-xs">PENDING</span>`}
+                    </td>
+                    <td class="p-2 text-center">${p.firstScore !== null && p.firstScore !== undefined ? p.firstScore : '-'}</td>
+                    <td class="p-2 text-center font-bold text-archive-green">${p.finalScore !== null && p.finalScore !== undefined ? p.finalScore : '-'}</td>
+                    <td class="p-2 text-center">${p.retryCount || 0}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // --- RESET DATA MODAL ---
+        function showResetModal() {
+            showModal(
+                "SYSTEM PURGE",
+                "Are you sure you want to erase this agent's mission progress?<br><br><span class='text-red-500 font-bold'>This action cannot be undone.</span>",
+                resetCurrentAgentProgress
+            );
+        }
+
+        function resetCurrentAgentProgress() {
+            const profile = getActiveProfile();
+            if (profile) {
+                profile.progress = {};
+                profile.completedFiles = [];
+                profile.scores = {};
+                profile.vaultUnlocked = false;
+                profile.finalScore = 0;
+                profile.finalTitle = null;
+                profile.perfectBadge = false;
+                profile.errorLog = [];
+                profile.pendingSync = [];
+                saveProfiles();
+            }
+            navTo('screen-board');
+        }
+
+        // --- INIT ---
+        window.onload = () => {
+            loadProfiles();
+            const activeProfile = getActiveProfile();
+            if (activeProfile && activeProfile.student && activeProfile.student.name) {
+                updateUIState();
+                if (activeProfile.completedFiles && activeProfile.completedFiles.length === GAME_DATA.length && activeProfile.finalScore > 0) {
+                    generateCertificate();
+                } else {
+                    navTo('screen-board');
+                }
+            } else {
+                navTo('screen-landing');
+            }
+        };
+    </script>
+</body>
+</html>
